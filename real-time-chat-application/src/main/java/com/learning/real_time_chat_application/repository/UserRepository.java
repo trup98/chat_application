@@ -17,8 +17,12 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByIdAndIsActiveTrue(Long id);
 
 
-    @Query(nativeQuery = true, value = "SELECT um.id AS id,um.user_name AS userName,um.email AS email FROM learning.user_master um WHERE um.is_active = TRUE " +
-            "AND (um.user_name LIKE CONCAT('%',:searchKey,'%') OR um.email LIKE CONCAT('%',:searchKey,'%')) ")
+    @Query(value = "SELECT um.id AS id, um.user_name AS userName, um.email AS email " +
+            "FROM user_master um " +
+            "WHERE um.is_active = TRUE " +
+            "AND (um.user_name ILIKE '%' || :searchKey || '%' " +
+            "OR um.email ILIKE '%' || :searchKey || '%')",
+            nativeQuery = true)
     Page<GetAllUser> findAllUser(Pageable pageable, @Param("searchKey") String searchKey);
 
 

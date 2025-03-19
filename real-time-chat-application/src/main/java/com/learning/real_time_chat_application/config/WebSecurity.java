@@ -43,9 +43,11 @@ public class WebSecurity {
 
     private String[] getPublicUrls() {
         return new String[]{
+
+//                controller end points
                 "/api/v1/auth/login",
                 "/v1/test/login",
-                "/test/multiModule/testApi",
+
                 // for Swagger UI v2
                 "/v2/api-docs",
                 "/swagger-ui.html",

@@ -45,6 +45,7 @@ public class UserServiceImpl implements UserService {
 
         UserEntity currentUser = utilities.currentUser();
 
+
         UserEntity saveUser = new UserEntity();
         saveUser.setEmail(registerUserRequestDto.getEmail());
         saveUser.setPassword(passwordEncoder.encode(registerUserRequestDto.getPassword()));
@@ -52,15 +53,17 @@ public class UserServiceImpl implements UserService {
         saveUser.setCreatedBy(currentUser);
         saveUser.setUpdatedBy(currentUser);
 
-        this.userRepository.save(saveUser);
-//        RoleEntity roleEntity = this.roleRepository.findById(registerUserRequestDto.getRoleIds()).orElseThrow(() -> new CustomException(ExceptionEnum.ROLE_NOT_FOUND.getValue(), HttpStatus.NOT_FOUND));
+        UserEntity savedUser = this.userRepository.save(saveUser);
+        Long defaultRoleId = 2L;
+        RoleEntity roleEntity = this.roleRepository.findById(defaultRoleId)
+                .orElseThrow(() -> new CustomException(ExceptionEnum.ROLE_NOT_FOUND.getValue(), HttpStatus.NOT_FOUND));
 
-//        UserRoleMappingEntity userRoleMappingEntity = new UserRoleMappingEntity();
-////        userRoleMappingEntity.setRoleId(roleEntity);
-//        userRoleMappingEntity.setUserId(savedUser);
-//        userRoleMappingEntity.setCreatedBy(currentUser);
-//        userRoleMappingEntity.setUpdatedBy(currentUser);
-//        this.userRoleMappingRepository.save(userRoleMappingEntity);
+        UserRoleMappingEntity userRoleMappingEntity = new UserRoleMappingEntity();
+        userRoleMappingEntity.setRoleId(roleEntity);
+        userRoleMappingEntity.setUserId(savedUser);
+        userRoleMappingEntity.setCreatedBy(currentUser);
+        userRoleMappingEntity.setUpdatedBy(currentUser);
+        this.userRoleMappingRepository.save(userRoleMappingEntity);
     }
 
     @Override

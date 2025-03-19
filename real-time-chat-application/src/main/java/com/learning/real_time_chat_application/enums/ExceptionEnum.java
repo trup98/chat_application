@@ -28,6 +28,9 @@ public enum ExceptionEnum {
     ROLE_NOT_FOUND("Role not found", "ROLE_NOT_FOUND"),
     ROLE_ALREADY_EXIST("Role already exists", "ROLE_EXISTS"),
     ERROR_WHILE_GENERATING_SECERET_KEY("Error While generating Key", "ERROR_WHILE_GENERATING_SECERET_KEY"),
+    SENDER_NOT_FOUND("Sender not found", "SENDER_NOT_FOUND"),
+    RECEIVER_NOT_FOUND("Receiver not found", "RECEIVER_NOT_FOUND"),
+    CONVERSATION_NOT_FOUND("Conversation not found", "CONVERSATION_NOT_FOUND"),
 
     ;
 

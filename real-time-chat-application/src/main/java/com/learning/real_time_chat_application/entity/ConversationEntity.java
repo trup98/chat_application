@@ -4,25 +4,27 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "user_master")
+@Table(name = "conversation_master")
 @ToString
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
 @AllArgsConstructor
-public class UserEntity extends BaseEntity {
+public class ConversationEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_name")
-    private String userName;
+    @ManyToOne
+    @JoinColumn(name = "user_1", nullable = false)
+    private UserEntity user1;
 
-    @Column(name = "password")
-    private String password;
+    @ManyToOne
+    @JoinColumn(name = "user_2", nullable = false)
+    private UserEntity user2;
 
-    @Column(name = "email")
-    private String email;
+
+
 }
