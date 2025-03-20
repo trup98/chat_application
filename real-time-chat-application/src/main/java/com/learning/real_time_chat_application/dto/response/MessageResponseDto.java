@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class MessageResponseDto {
+    private String senderName;
+    private String receiverName;
     private Long senderId;
     private Long receiverId;
     private String content;
