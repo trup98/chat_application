@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { FidgetSpinner } from "react-loader-spinner"; // Import loader spinner
+import {useState} from "react";
+import {useLocation, useNavigate} from "react-router-dom";
+import {FidgetSpinner} from "react-loader-spinner";
+import {loginApi} from "../../api/auth/auth-api";
+import {fourteenMinutesTime, setCookie, setRoleToCookies, setUserId} from "../../config/Cookie-store";
+import {toast, Zoom} from "react-toastify";
 
 export const Login = () => {
     const [loginDetail, setLoginDetail] = useState({
@@ -20,12 +22,21 @@ export const Login = () => {
         setError("");
 
         try {
-            const response = await axios.post("http://localhost:9050/api/v1/auth/login", loginDetail);
-            console.log("Login Success:", response.data);
+            const response = await loginApi(loginDetail);
+            setUserId("userId", response.data.userId);
 
-            if (response.data.data.token) {
-                localStorage.setItem("authToken", response.data.data.token);
-            }
+            setCookie("token", response.data.token, {
+                expires: fourteenMinutesTime()
+            });
+
+            setRoleToCookies("role", response.data.userRole, {
+                expires: fourteenMinutesTime(),
+            });
+
+            const redirectPath = new URLSearchParams(location.search).get("redirect") || "/";
+            navigate(redirectPath, {replace: true});
+
+            toast.success("Login successfully!", {transition: Zoom});
 
             navigate("/dashboard");
 
@@ -33,7 +44,7 @@ export const Login = () => {
             console.error("Login Failed:", err);
             setError(err.response?.data?.message || "Login failed. Try again.");
         } finally {
-            setLoading(false);
+            setLoading(false); // Ensure loading is turned off
         }
     };
 
@@ -42,7 +53,7 @@ export const Login = () => {
             {/* Full-screen loader */}
             {loading && (
                 <div className="fullscreen-loader">
-                    <FidgetSpinner width="200" color="#ffffff" />
+                    <FidgetSpinner width="200" color="#ffffff"/>
                 </div>
             )}
 
@@ -68,7 +79,7 @@ export const Login = () => {
                                         className="form-control bg-light text-black border-0"
                                         placeholder="Email"
                                         value={loginDetail.email}
-                                        onChange={(e) => setLoginDetail({ ...loginDetail, email: e.target.value })}
+                                        onChange={(e) => setLoginDetail({...loginDetail, email: e.target.value})}
                                         required
                                     />
                                 </div>
@@ -78,7 +89,7 @@ export const Login = () => {
                                         className="form-control bg-light text-black border-0"
                                         placeholder="Password"
                                         value={loginDetail.password}
-                                        onChange={(e) => setLoginDetail({ ...loginDetail, password: e.target.value })}
+                                        onChange={(e) => setLoginDetail({...loginDetail, password: e.target.value})}
                                         required
                                     />
                                 </div>
