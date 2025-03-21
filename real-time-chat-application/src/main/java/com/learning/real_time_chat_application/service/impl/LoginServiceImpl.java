@@ -69,7 +69,7 @@ public class LoginServiceImpl implements LoginService {
         }
 
         try {
-            return new LoginResponseDto(jwtTokenProvider.createToken(userEntity.getEmail(), userRole, userEntity.getId()), userEntity.getUserName(), userRole);
+            return new LoginResponseDto(jwtTokenProvider.createToken(userEntity.getEmail(), userRole, userEntity.getId()), userEntity.getUserName(), userRole, userEntity.getId());
         } catch (Exception e) {
             throw new CustomException("Error While Creating Token", HttpStatus.INTERNAL_SERVER_ERROR);
         }
