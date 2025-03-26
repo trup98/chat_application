@@ -20,10 +20,13 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query(value = "SELECT um.id AS id, um.user_name AS userName, um.email AS email " +
             "FROM user_master um " +
             "WHERE um.is_active = TRUE " +
+            "AND um.id <> :loggedInUserId " +
             "AND (um.user_name ILIKE '%' || :searchKey || '%' " +
             "OR um.email ILIKE '%' || :searchKey || '%')",
             nativeQuery = true)
-    Page<GetAllUser> findAllUser(Pageable pageable, @Param("searchKey") String searchKey);
+    Page<GetAllUser> findAllUser(Pageable pageable,
+                                 @Param("searchKey") String searchKey,
+                                 @Param("loggedInUserId") Long loggedInUserId);
 
 
     Optional<UserEntity> findByEmail(String username);

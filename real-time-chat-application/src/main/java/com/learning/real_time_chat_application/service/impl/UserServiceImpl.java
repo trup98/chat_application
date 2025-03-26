@@ -67,8 +67,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<GetAllUser> findAllUser(Pageable pageable, String searchKey) {
-        var userPage = userRepository.findAllUser(pageable, searchKey).map(user -> modelMapper.map(user, GetAllUser.class));
+    public Page<GetAllUser> findAllUser(Pageable pageable, String searchKey, Long loggedInUserId) {
+        var userPage = userRepository.findAllUser(pageable, searchKey, loggedInUserId).map(user -> modelMapper.map(user, GetAllUser.class));
         if (userPage.isEmpty()) {
             throw new CustomException(ExceptionEnum.USER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
         }

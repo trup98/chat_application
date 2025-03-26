@@ -10,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 public interface UserService {
     void addNewUser(RegisterUserRequestDto registerUserRequestDto);
 
-    Page<GetAllUser> findAllUser(Pageable pageable, String searchKey);
+    Page<GetAllUser> findAllUser(Pageable pageable, String searchKey, Long loggedInUserId);
 
     UserResponseDto getUserById(Long id);
 

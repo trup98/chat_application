@@ -34,9 +34,10 @@ public class UserController {
                                                   @RequestParam(value = "pageSize", defaultValue = "10", required = false) Integer pageSize,
                                                   @RequestParam(value = "sortBy", required = false, defaultValue = "ID") GetSortBy getSortBy,
                                                   @RequestParam(value = "sortOrder", required = false, defaultValue = "ASC") Sort.Direction sortOrder,
-                                                  @RequestParam(value = "searchKey", required = false, defaultValue = "") String searchKey) {
+                                                  @RequestParam(value = "searchKey", required = false, defaultValue = "") String searchKey,
+                                                  @RequestParam(value = "senderId", required = true) Long loggedInUserId) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(sortOrder, getSortBy.getValue()));
-        var userResponse = this.userService.findAllUser(pageable, searchKey);
+        var userResponse = this.userService.findAllUser(pageable, searchKey, loggedInUserId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "User found Successfully", userResponse), HttpStatus.OK);
     }
 
