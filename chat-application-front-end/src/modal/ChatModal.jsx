@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     Dialog,
     DialogTitle,
@@ -9,27 +9,45 @@ import {
     Box,
     Typography
 } from "@mui/material";
-import { getChatHistory } from "../api/auth/userApi";
-import { getUserId } from "../config/Cookie-store";
+import { getChatHistory, sendChat } from "../api/auth/userApi";
+import { getTokenFromCookie, getUserId } from "../config/Cookie-store";
+import { Client } from "@stomp/stompjs";
 
 const ChatModal = ({ open, onClose, user }) => {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
+    const [socket, setSocket] = useState(null);
+    const messagesEndRef = useRef(null);
 
     const senderId = parseInt(getUserId("userId"), 10);
     const receiverId = user?.id ? parseInt(user.id, 10) : null;
 
+    // Scroll to bottom when messages update
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
     useEffect(() => {
         if (open && senderId && receiverId) {
             fetchChatHistory();
+            // Only initialize the socket if it's not already active
+            if (!socket) {
+                initializeSocket();
+            }
         }
+
+        // Cleanup: deactivate the socket when the modal is closed
+        return () => {
+            if (socket) {
+                socket.deactivate();
+                setSocket(null);
+            }
+        };
     }, [open, senderId, receiverId]);
 
     const fetchChatHistory = async () => {
         try {
             const response = await getChatHistory(senderId, receiverId);
-            console.log("Chat History Response:", response.data);
-
             if (response.status === 200 && Array.isArray(response.data)) {
                 setMessages(response.data);
             } else {
@@ -41,6 +59,55 @@ const ChatModal = ({ open, onClose, user }) => {
         }
     };
 
+    const initializeSocket = () => {
+        const token = getTokenFromCookie("token");
+
+        const stompClient = new Client({
+            brokerURL: `ws://localhost:9050/ws/websocket?token=${token}`,
+            debug: (str) => console.log(str),
+            reconnectDelay: 5000,
+        });
+
+        stompClient.onConnect = () => {
+            // Subscribe to personal messages
+            stompClient.subscribe(`/user/${senderId}/queue/messages`, (message) => {
+                const newMessage = JSON.parse(message.body);
+                setMessages((prevMessages) => [...prevMessages, newMessage]);
+            });
+        };
+
+        stompClient.onStompError = (frame) => {
+            console.error("❌ WebSocket Error:", frame);
+        };
+
+        stompClient.activate();
+        setSocket(stompClient);
+    };
+
+    // Send message via REST API only.
+    // The backend will persist the message and then push it to the recipient via WebSocket.
+    const handleSendButton = async () => {
+        if (!message.trim()) return;
+
+        const messageBody = {
+            senderId,
+            receiverId,
+            content: message.trim(),
+        };
+
+        try {
+            const response = await sendChat(messageBody);
+            if (response.status === 200) {
+                setMessages((prevMessages) => [...prevMessages, messageBody]);
+                // We do not call socket.publish here to avoid duplication.
+                // The backend sends the message via messagingTemplate.
+                setMessage("");
+            }
+        } catch (error) {
+            console.error("Error sending message:", error);
+        }
+    };
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <Box sx={{ backgroundColor: "#222", color: "#fff" }}>
@@ -49,7 +116,17 @@ const ChatModal = ({ open, onClose, user }) => {
                 </DialogTitle>
 
                 <DialogContent dividers sx={{ backgroundColor: "#222", minHeight: 300, maxHeight: 400 }}>
-                    <Box sx={{ height: 300, overflowY: "auto", padding: 2, backgroundColor: "#1e1e1e", borderRadius: 2, display: "flex", flexDirection: "column" }}>
+                    <Box
+                        sx={{
+                            height: 300,
+                            overflowY: "auto",
+                            padding: 2,
+                            backgroundColor: "#1e1e1e",
+                            borderRadius: 2,
+                            display: "flex",
+                            flexDirection: "column"
+                        }}
+                    >
                         {messages.length > 0 ? (
                             messages.map((msg, index) => (
                                 <Box
@@ -72,6 +149,7 @@ const ChatModal = ({ open, onClose, user }) => {
                                 Start chatting with {user?.userName}...
                             </Typography>
                         )}
+                        <div ref={messagesEndRef} />
                     </Box>
                 </DialogContent>
 
@@ -92,7 +170,7 @@ const ChatModal = ({ open, onClose, user }) => {
 
                 <DialogActions sx={{ backgroundColor: "#333" }}>
                     <Button onClick={onClose} sx={{ color: "#fff" }}>Close Chat</Button>
-                    <Button color="primary" variant="contained">Send</Button>
+                    <Button color="primary" variant="contained" onClick={handleSendButton}>Send</Button>
                 </DialogActions>
             </Box>
         </Dialog>

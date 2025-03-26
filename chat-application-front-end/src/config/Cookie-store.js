@@ -17,10 +17,28 @@ export const setRoleToCookies = (name, value, attributes = {}) => {
     Cookies.set(name, value, attributes);
 }
 
+export const getTokenFromCookie = (name) => {
+    return Cookies.get(name);
+}
+
+export const setUserName = (name, value) => {
+    Cookies.set(name, value);
+}
+
+export const getUserName = (name) => {
+    return Cookies.get(name);
+}
 // get role from cookies
 export const getRoleFromCookie = (name) => {
     return Cookies.get(name);
 }
+export const removeUserSession = () =>{
+    Cookies.remove("token");
+    Cookies.remove("userName");
+    Cookies.remove("role");
+    Cookies.remove("userId");
+}
+
 
 export const getCookie = (key) => {
     if (key !== null && key !== undefined) {

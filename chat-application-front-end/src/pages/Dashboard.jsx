@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from "react";
 import {
     Paper,
     Table,
@@ -12,13 +12,17 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Button
+    Button,
+    Box,
+    Typography
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { toast, Zoom } from "react-toastify";
-import { callAllUser } from "../api/auth/userApi";
+import {useNavigate} from "react-router-dom";
+import {toast, Zoom} from "react-toastify";
+import {callAllUser} from "../api/auth/userApi";
 import DensityMediumIcon from "@mui/icons-material/DensityMedium";
 import ChatModal from "../modal/ChatModal";
+import {getUserId, getUserName, removeUserSession} from "../config/Cookie-store";
+import LogoutModal from "./auth/LogoutModal";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -28,16 +32,17 @@ const Dashboard = () => {
         pageNumber: 0,
         pageSize: 10
     });
-
     const [value, setValues] = useState("");
     const [currentPage, setCurrentPage] = useState(0);
     const [openModal, setOpenModal] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [logoutOpen, setLogoutOpen] = useState(false);
+    const senderId = parseInt(getUserId("userId"), 10);
 
-    // Fetch Users from API
+    // Fetch Users from API (excluding logged-in user)
     const getAll = (currentPage) => {
-        callAllUser(value, value ? 0 : currentPage, users.pageSize)
+        callAllUser(value, value ? 0 : currentPage, users.pageSize, senderId)
             .then((response) => {
                 setUsers({
                     data: response.data.content,
@@ -77,14 +82,39 @@ const Dashboard = () => {
         setChatOpen(true);   // Open chat modal
     };
 
+    const handleOpenLogout = () => {
+        setLogoutOpen(true);
+    };
+
+    const handleCloseLogout = () => {
+        setLogoutOpen(false);
+    };
+
+    const handleLogout = () => {
+        removeUserSession();
+        navigate("/");
+    };
+
     return (
-        <div style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "100vh",
-            backgroundColor: "#000"
-        }}>
+        <Box sx={{position: "relative", backgroundColor: "#000", minHeight: "100vh", padding: 2}}>
+            <Box sx={{ position: "absolute", top: 16, right: 16 }}>
+                <Typography
+                    sx={{
+                        color: "#fff",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        transition: "color 0.3s ease",
+                        "&:hover": {
+                            color: "#1e90ff",
+                        }
+                    }}
+                    onClick={handleOpenLogout}
+                >
+                    Welcome {getUserName("userName")}
+                </Typography>
+            </Box>
+
+
             <TableContainer component={Paper} sx={{
                 backgroundColor: "#222",
                 color: "#fff",
@@ -92,39 +122,49 @@ const Dashboard = () => {
                 minWidth: 800,
                 maxWidth: 1200,
                 width: "90%",
-                padding: 2
+                padding: 2,
+                margin: "0 auto",
+                marginTop: 20
             }}>
-                <Table sx={{ minWidth: 800, maxWidth: 1200, width: "100%" }} aria-label="user table">
+                <Table sx={{minWidth: 800, maxWidth: 1200, width: "100%"}} aria-label="user table">
                     <TableHead>
-                        <TableRow sx={{ backgroundColor: "#333" }}>
-                            <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>User Name</TableCell>
-                            <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">Email</TableCell>
-                            <TableCell sx={{ color: "#fff", fontWeight: "bold" }} align="right">Action</TableCell>
+                        <TableRow sx={{backgroundColor: "#333"}}>
+                            <TableCell sx={{color: "#fff", fontWeight: "bold"}}>Index</TableCell>
+                            <TableCell sx={{color: "#fff", fontWeight: "bold"}}>User Name</TableCell>
+                            <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="right">Email</TableCell>
+                            <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="right">Action</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {users.data && users.data.length > 0 ? (
-                            users.data.map((user) => (
+                            users.data.map((user, index) => (
                                 <TableRow
                                     key={user.id}
                                     sx={{
-                                        '&:nth-of-type(odd)': { backgroundColor: "#2a2a2a" },
-                                        '&:nth-of-type(even)': { backgroundColor: "#1e1e1e" },
-                                        '&:hover': { backgroundColor: "#444" }
+                                        '&:nth-of-type(odd)': {backgroundColor: "#2a2a2a"},
+                                        '&:nth-of-type(even)': {backgroundColor: "#1e1e1e"},
+                                        '&:hover': {backgroundColor: "#444"}
                                     }}
                                 >
-                                    <TableCell sx={{ color: "#fff" }} component="th" scope="row">{user.userName}</TableCell>
-                                    <TableCell sx={{ color: "#fff" }} align="right">{user.email}</TableCell>
+                                    <TableCell sx={{color: "#fff"}} component="th" scope="row">
+                                        {index + 1}
+                                    </TableCell>
+                                    <TableCell sx={{color: "#fff"}} component="th" scope="row">
+                                        {user.userName}
+                                    </TableCell>
+                                    <TableCell sx={{color: "#fff"}} align="right">
+                                        {user.email}
+                                    </TableCell>
                                     <TableCell align="right">
                                         <IconButton onClick={() => handleOpenModal(user)}>
-                                            <DensityMediumIcon sx={{ color: "#fff" }} />
+                                            <DensityMediumIcon sx={{color: "#fff"}}/>
                                         </IconButton>
                                     </TableCell>
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={3} sx={{ color: "#fff", textAlign: "center" }}>
+                                <TableCell colSpan={4} sx={{color: "#fff", textAlign: "center"}}>
                                     No users found
                                 </TableCell>
                             </TableRow>
@@ -139,35 +179,36 @@ const Dashboard = () => {
                 onClose={handleCloseModal}
                 sx={{
                     "& .MuiPaper-root": {
-                        backgroundColor: "#222",  // Dark background
-                        color: "#fff",             // White text
+                        backgroundColor: "#222",
+                        color: "#fff",
                         borderRadius: 2
                     }
                 }}
             >
-                <DialogTitle sx={{ backgroundColor: "#333", color: "#fff", textAlign: "center" }}>
+                <DialogTitle sx={{backgroundColor: "#333", color: "#fff", textAlign: "center"}}>
                     Start Chat
                 </DialogTitle>
-
-                <DialogContent sx={{ backgroundColor: "#222", padding: 2 }}>
-                    <p style={{ color: "#ddd" }}>
+                <DialogContent sx={{backgroundColor: "#222", padding: 2}}>
+                    <Typography sx={{color: "#ddd"}}>
                         Would you like to start a chat with <b>{selectedUser?.userName}</b>?
-                    </p>
+                    </Typography>
                 </DialogContent>
-
-                <DialogActions sx={{ backgroundColor: "#333", padding: 2 }}>
-                    <Button onClick={handleCloseModal} sx={{ color: "#fff", borderColor: "#555" }} variant="outlined">
+                <DialogActions sx={{backgroundColor: "#333", padding: 2}}>
+                    <Button onClick={handleCloseModal} sx={{color: "#fff", borderColor: "#555"}} variant="outlined">
                         Cancel
                     </Button>
-                    <Button onClick={handleStartChat} sx={{ backgroundColor: "#007bff", color: "#fff" }} variant="contained">
+                    <Button onClick={handleStartChat} sx={{backgroundColor: "#007bff", color: "#fff"}}
+                            variant="contained">
                         Start
                     </Button>
                 </DialogActions>
             </Dialog>
 
             {/* Chat UI Modal */}
-            <ChatModal open={chatOpen} onClose={() => setChatOpen(false)} user={selectedUser}  />
-        </div>
+            <ChatModal open={chatOpen} onClose={() => setChatOpen(false)} user={selectedUser}/>
+            <LogoutModal open={logoutOpen} onClose={handleCloseLogout} onLogout={handleLogout}/>
+
+        </Box>
     );
 };
 

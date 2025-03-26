@@ -2,7 +2,7 @@ import {useState} from "react";
 import {useLocation, useNavigate} from "react-router-dom";
 import {FidgetSpinner} from "react-loader-spinner";
 import {loginApi} from "../../api/auth/auth-api";
-import {fourteenMinutesTime, setCookie, setRoleToCookies, setUserId} from "../../config/Cookie-store";
+import {fourteenMinutesTime, setCookie, setRoleToCookies, setUserId, setUserName} from "../../config/Cookie-store";
 import {toast, Zoom} from "react-toastify";
 
 export const Login = () => {
@@ -24,6 +24,8 @@ export const Login = () => {
         try {
             const response = await loginApi(loginDetail);
             setUserId("userId", response.data.userId);
+
+            setUserName("userName", response.data.username);
 
             setCookie("token", response.data.token, {
                 expires: fourteenMinutesTime()
