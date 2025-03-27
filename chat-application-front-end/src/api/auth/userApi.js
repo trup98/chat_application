@@ -1,5 +1,6 @@
 import {axiosInstance} from "../../config/axios-config";
 
+
 export const callAllUser = async (searchkey, pageNumber, pageSize, senderId) => {
     return await axiosInstance.get(`/api/v1/user/getAllUser?pageNo=${pageNumber}&pageSize=${pageSize}&searchKey=${searchkey}&senderId=${senderId}`).then(response => response.data)
 }
