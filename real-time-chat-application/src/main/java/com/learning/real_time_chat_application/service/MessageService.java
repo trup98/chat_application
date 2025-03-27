@@ -9,4 +9,7 @@ public interface MessageService {
     MessageResponseDto sendMessage(MessageRequestDto messageRequestDto);
 
     List<MessageResponseDto> getChatHistory(Long senderId, Long receiverId);
+
+
+
 }

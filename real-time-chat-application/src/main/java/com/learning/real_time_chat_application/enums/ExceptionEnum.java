@@ -31,6 +31,7 @@ public enum ExceptionEnum {
     SENDER_NOT_FOUND("Sender not found", "SENDER_NOT_FOUND"),
     RECEIVER_NOT_FOUND("Receiver not found", "RECEIVER_NOT_FOUND"),
     CONVERSATION_NOT_FOUND("Conversation not found", "CONVERSATION_NOT_FOUND"),
+    GROUP_NOT_FOUND("Group not found", "GROUP_NOT_FOUND"),
 
     ;
 

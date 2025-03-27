@@ -1,0 +1,19 @@
+package com.learning.real_time_chat_application.repository;
+
+import com.learning.real_time_chat_application.entity.GroupEntity;
+import com.learning.real_time_chat_application.entity.GroupMemberEntity;
+import com.learning.real_time_chat_application.entity.UserEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface GroupMemberRepository extends JpaRepository<GroupMemberEntity, Long> {
+    List<GroupMemberEntity> findByGroup(GroupEntity group);
+
+    boolean existsByGroupAndUser(GroupEntity group, UserEntity user);
+
+    void deleteByGroupAndUser(GroupEntity group, UserEntity user);
+
+}
