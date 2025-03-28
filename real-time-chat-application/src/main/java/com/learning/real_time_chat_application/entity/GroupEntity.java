@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Setter
 @Builder
 @AllArgsConstructor
-public class GroupEntity {
+public class GroupEntity extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,6 +26,4 @@ public class GroupEntity {
     @JoinColumn(name = "created_by", nullable = false)
     private UserEntity createdBy;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 }

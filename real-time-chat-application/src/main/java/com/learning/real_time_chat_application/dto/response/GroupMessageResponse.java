@@ -10,4 +10,5 @@ public class GroupMessageResponse {
     private Long senderId;
     private String content;
     private LocalDateTime timestamp;
+    private String senderName;
 }

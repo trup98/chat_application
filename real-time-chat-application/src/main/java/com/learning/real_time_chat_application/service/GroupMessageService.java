@@ -18,4 +18,6 @@ public interface GroupMessageService {
     List<GroupDTO> getAllGroups();
 
     List<GroupDTO> getGroupsWithAssociateUser(Long userId);
+
+    void deleteGroup(Long groupId);
 }

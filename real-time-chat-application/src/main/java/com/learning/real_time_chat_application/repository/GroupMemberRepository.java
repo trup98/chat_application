@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GroupMemberRepository extends JpaRepository<GroupMemberEntity, Long> {
@@ -15,5 +16,8 @@ public interface GroupMemberRepository extends JpaRepository<GroupMemberEntity, 
     boolean existsByGroupAndUser(GroupEntity group, UserEntity user);
 
     void deleteByGroupAndUser(GroupEntity group, UserEntity user);
+
+    List<GroupMemberEntity> findByGroupId(Long groupId);
+
 
 }

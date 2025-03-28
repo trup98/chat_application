@@ -12,4 +12,6 @@ public interface GroupMessageRepository extends JpaRepository<GroupMessageEntity
 
     List<GroupMessageEntity> findByGroupOrderByTimestampAsc(GroupEntity group);
 
+    List<GroupMessageEntity> findByGroupId(Long groupId);
+
 }

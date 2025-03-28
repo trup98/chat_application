@@ -8,10 +8,12 @@ import com.learning.real_time_chat_application.dto.response.GroupResponse;
 import com.learning.real_time_chat_application.projection.dto.GroupDTO;
 import com.learning.real_time_chat_application.service.GroupMessageService;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.sql.ast.tree.expression.Collation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -50,6 +52,12 @@ public class GroupMessageController {
     public ResponseEntity<ApiResponse> getGroupsWithAssociateUser(@PathVariable Long userId) {
         List<GroupDTO> allGroupAssociateUser = this.groupMessageService.getGroupsWithAssociateUser(userId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Group Found Successfully", allGroupAssociateUser), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/deleteGroup/{groupId}")
+    public ResponseEntity<ApiResponse> deleteGroup(@PathVariable Long groupId) {
+        this.groupMessageService.deleteGroup(groupId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Group Found Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
 }

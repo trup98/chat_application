@@ -39,16 +39,15 @@ public class GroupMessageServiceImpl implements GroupMessageService {
 
         UserEntity currentUser = utilities.currentUser();
 
-        GroupEntity groupEntity = GroupEntity.builder()
-                .groupName(groupCreationRequestDto.getGroupName())
-                .createdBy(currentUser)
-                .createdAt(LocalDateTime.now())
-                .build();
+        GroupEntity groupEntity = new GroupEntity();
+        groupEntity.setGroupName(groupCreationRequestDto.getGroupName());
+        groupEntity.setCreatedBy(currentUser);
+        groupEntity.setUpdatedBy(currentUser);
         GroupEntity savedGroup = groupRepository.save(groupEntity);
 
         for (Long userId : groupCreationRequestDto.getUserIds()) {
             UserEntity user = this.userRepository.findById(userId).orElseThrow(() -> new CustomException(ExceptionEnum.USER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
-            addUserToGroup(savedGroup, user);
+            addUserToGroup(savedGroup, user, currentUser);
         }
 
         return mapToGroupResponse(groupEntity);
@@ -59,19 +58,19 @@ public class GroupMessageServiceImpl implements GroupMessageService {
                 .stream().map(member -> member.getUser().getId()).collect(Collectors.toList());
         GroupResponse response = new GroupResponse();
         response.setGroupName(groupEntity.getGroupName());
-        response.setCreatedAt(groupEntity.getCreatedAt());
         response.setCreatedBy(groupEntity.getCreatedBy().getId());
         response.setMembers(members);
         return response;
     }
 
-    private void addUserToGroup(GroupEntity savedGroup, UserEntity user) {
+    private void addUserToGroup(GroupEntity savedGroup, UserEntity user, UserEntity currentUser) {
         if (!groupMemberRepository.existsByGroupAndUser(savedGroup, user)) {
-            GroupMemberEntity groupMemberEntity = GroupMemberEntity.builder()
-                    .group(savedGroup)
-                    .user(user)
-                    .joinedAt(LocalDateTime.now())
-                    .build();
+            GroupMemberEntity groupMemberEntity = new GroupMemberEntity();
+            groupMemberEntity.setGroup(savedGroup);
+            groupMemberEntity.setUser(user);
+            groupMemberEntity.setJoinedAt(LocalDateTime.now());
+            groupMemberEntity.setCreatedBy(currentUser);
+            groupMemberEntity.setUpdatedBy(currentUser);
             groupMemberRepository.save(groupMemberEntity);
         }
     }
@@ -98,6 +97,7 @@ public class GroupMessageServiceImpl implements GroupMessageService {
         response.setSenderId(saveGroupMessage.getSender().getId());
         response.setContent(saveGroupMessage.getContent());
         response.setTimestamp(saveGroupMessage.getTimestamp());
+        response.setSenderName(saveGroupMessage.getSender().getUserName());
         return response;
     }
 
@@ -122,5 +122,35 @@ public class GroupMessageServiceImpl implements GroupMessageService {
             throw new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
         }
         return groupsByAssociateUser;
+    }
+
+    @Override
+    public void deleteGroup(Long groupId) {
+        GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        List<GroupMemberEntity> groupMemberEntities = this.groupMemberRepository.findByGroupId(groupEntity.getId());
+        List<GroupMessageEntity> groupMessageEntity = this.groupMessageRepository.findByGroupId(groupEntity.getId());
+        groupEntity.setIsDeleted(true);
+        groupEntity.setIsActive(false);
+        groupRepository.save(groupEntity);
+        if (groupMemberEntities.isEmpty()) {
+            throw new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
+        } else {
+            for (GroupMemberEntity memberInGroup : groupMemberEntities) {
+                memberInGroup.setIsDeleted(true);
+                memberInGroup.setIsActive(false);
+                groupMemberRepository.saveAll(groupMemberEntities);
+            }
+        }
+//        if (groupMessageEntity.isEmpty()) {
+//            throw new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
+//        } else {
+//            for (GroupMessageEntity messagesInGroup : groupMessageEntity) {
+//                messagesInGroup.setIsActive(false);
+//                messagesInGroup.setIsDeleted(true);
+//                groupMessageRepository.save(messagesInGroup);
+//            }
+//        }
+
+
     }
 }

@@ -24,8 +24,11 @@ public interface GroupRepository extends JpaRepository<GroupEntity, Long> {
                 ) 
                 FROM GroupEntity g
                 JOIN GroupMemberEntity gm ON g.id = gm.group.id
-                WHERE gm.user.id = :userId
+                WHERE gm.user.id = :userId 
+                  AND g.isActive = true 
+                  AND gm.isActive = true
                 GROUP BY g.id, g.groupName
             """)
     List<GroupDTO> findGroupsByUserId(@Param("userId") Long userId);
+
 }
