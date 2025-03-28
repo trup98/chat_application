@@ -43,10 +43,9 @@ export const Login = () => {
             navigate("/dashboard");
 
         } catch (err) {
-            console.error("Login Failed:", err);
             setError(err.response?.data?.message || "Login failed. Try again.");
         } finally {
-            setLoading(false); // Ensure loading is turned off
+            setLoading(false);
         }
     };
 

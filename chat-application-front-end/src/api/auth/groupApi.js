@@ -8,3 +8,7 @@ export const callAllGroups = async (userId) => {
 export const groupCrate = async (groupDetails) => {
     return await axiosInstance.post(`/api/group/messages/crete`, groupDetails).then(response => response.data)
 }
+
+export const deleteGroup = async (groupId) => {
+    return await axiosInstance.delete(`/api/group/messages/deleteGroup/${groupId}`).then(response => response.data)
+}

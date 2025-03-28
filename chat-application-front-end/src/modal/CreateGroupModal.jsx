@@ -19,10 +19,11 @@ import {callAllUser} from "../api/auth/userApi";
 import {toast, Zoom} from "react-toastify";
 import {groupCrate} from "../api/auth/groupApi";
 
-const CreateGroupModal = ({open, onClose, onCreateGroup, senderId}) => {
+const CreateGroupModal = ({open, onClose, senderId}) => {
     const [groupName, setGroupName] = useState("");
     const [users, setUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
+
 
     useEffect(() => {
         if (open) {
@@ -33,7 +34,9 @@ const CreateGroupModal = ({open, onClose, onCreateGroup, senderId}) => {
                     }
                 })
                 .catch((error) => {
-                    toast.error("Failed to fetch users", {transition: Zoom});
+                    toast.error("Failed to fetch users", {
+                        "transition": Zoom
+                    });
                 });
         }
     }, [open, senderId]);
@@ -46,29 +49,32 @@ const CreateGroupModal = ({open, onClose, onCreateGroup, senderId}) => {
 
     const handleCreateGroup = async () => {
         if (!groupName.trim()) {
-            toast.error("Group name is required!", {transition: Zoom});
+            toast.error("Group name is required!", {
+                transition: Zoom
+            });
             return;
         }
-        if (selectedUsers.length === 0) {
-            toast.error("Select at least one user!", {transition: Zoom});
+        if (selectedUsers.length !== 0) {
+            const newGroup = {
+                groupName: groupName,
+                userIds: [...selectedUsers, senderId],
+            };
+            const response = await groupCrate(newGroup);
+            console.log("response >>> ", response);
+            if (response.status === 200) {
+                toast.success(response.data.message, {
+                    transition: Zoom,
+                });
+                onClose();
+            }
+            setGroupName("");
+            setSelectedUsers([]);
+        } else {
+            toast.error("Select at least one user!", {
+                transition: Zoom
+            });
             return;
         }
-
-        const newGroup = {
-            name: groupName,
-            members: selectedUsers
-        };
-
-        const response = await groupCrate(newGroup);
-        if (response.status === 200) {
-            onClose();
-        }
-
-
-        // onCreateGroup(newGroup);
-        setGroupName("");
-        setSelectedUsers([]);
-        // onClose();
     };
 
     return (
