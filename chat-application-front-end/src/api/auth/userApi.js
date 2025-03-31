@@ -12,3 +12,7 @@ export const getChatHistory = async (senderId, receiverId) => {
 export const sendChat = async (messageContains) => {
     return await axiosInstance.post(`/api/messages/send`, messageContains).then((response) => response.data);
 }
+
+export const deleteUser = async (id) => {
+    return await axiosInstance.delete(`/api/v1/user/deleteUser/${id}`).then(response => response.data);
+}

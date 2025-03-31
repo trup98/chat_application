@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {
     Dialog,
     DialogTitle,
@@ -7,47 +7,58 @@ import {
     Button,
     TextField,
     Box,
-    Typography
+    Typography, IconButton
 } from "@mui/material";
-import { getChatHistory, sendChat } from "../api/auth/userApi";
-import { getTokenFromCookie, getUserId } from "../config/Cookie-store";
-import { Client } from "@stomp/stompjs";
+import {getChatHistory, sendChat} from "../api/auth/userApi";
+import {getTokenFromCookie, getUserId} from "../config/Cookie-store";
+import {Client} from "@stomp/stompjs";
+import {getGroupChatHistory, sendMessageInGroup} from "../api/auth/groupApi";
+import dayjs from "dayjs";
+import AddIcon from "@mui/icons-material/Add";
 
-const ChatModal = ({ open, onClose, user }) => {
+const ChatModal = ({open, onClose, user, group}) => {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
     const [socket, setSocket] = useState(null);
     const messagesEndRef = useRef(null);
-
+    const stompClientRef = useRef(null);
     const senderId = parseInt(getUserId("userId"), 10);
     const receiverId = user?.id ? parseInt(user.id, 10) : null;
 
     // Scroll to bottom when messages update
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
     }, [messages]);
 
     useEffect(() => {
-        if (open && senderId && receiverId) {
+        if (open) {
             fetchChatHistory();
-            // Only initialize the socket if it's not already active
-            if (!socket) {
-                initializeSocket();
-            }
+            initializeSocket();
+        } else {
+            closeSocket(); // Close socket when modal is closed
         }
 
-        // Cleanup: deactivate the socket when the modal is closed
         return () => {
-            if (socket) {
-                socket.deactivate();
-                setSocket(null);
-            }
+            closeSocket(); // Ensure socket is cleaned up
         };
-    }, [open, senderId, receiverId]);
+    }, [open, senderId, receiverId, group]);
+    const closeSocket = () => {
+        if (stompClientRef.current) {
+            stompClientRef.current.deactivate();
+            stompClientRef.current = null;
+        }
+    };
+
 
     const fetchChatHistory = async () => {
         try {
-            const response = await getChatHistory(senderId, receiverId);
+            let response;
+            if (group) {
+                response = await getGroupChatHistory(group);
+            } else {
+                response = await getChatHistory(senderId, receiverId);
+            }
+
             if (response.status === 200 && Array.isArray(response.data)) {
                 setMessages(response.data);
             } else {
@@ -60,20 +71,31 @@ const ChatModal = ({ open, onClose, user }) => {
     };
 
     const initializeSocket = () => {
+        if (stompClientRef.current) {
+            closeSocket(); // Close existing connection before opening a new one
+        }
         const token = getTokenFromCookie("token");
 
         const stompClient = new Client({
-            brokerURL: `ws://localhost:9050/ws/websocket?token=${token}`,
+            brokerURL: `ws://192.168.10.131:9050/ws/websocket?token=${token}`,
             debug: (str) => console.log(str),
             reconnectDelay: 5000,
         });
 
         stompClient.onConnect = () => {
+            console.log("✅ Connected to WebSocket");
             // Subscribe to personal messages
             stompClient.subscribe(`/user/${senderId}/queue/messages`, (message) => {
                 const newMessage = JSON.parse(message.body);
                 setMessages((prevMessages) => [...prevMessages, newMessage]);
             });
+            // Subscribe to group messages if chatting in a group
+            if (group) {
+                stompClient.subscribe(`/topic/group/${group}`, (message) => {
+                    const newGroupMessage = JSON.parse(message.body);
+                    setMessages((prevMessages) => [...prevMessages, newGroupMessage]);
+                });
+            }
         };
 
         stompClient.onStompError = (frame) => {
@@ -81,7 +103,7 @@ const ChatModal = ({ open, onClose, user }) => {
         };
 
         stompClient.activate();
-        setSocket(stompClient);
+        stompClientRef.current = stompClient;
     };
 
     // Send message via REST API only.
@@ -89,19 +111,24 @@ const ChatModal = ({ open, onClose, user }) => {
     const handleSendButton = async () => {
         if (!message.trim()) return;
 
-        const messageBody = {
-            senderId,
-            receiverId,
-            content: message.trim(),
-        };
 
         try {
-            const response = await sendChat(messageBody);
-            if (response.status === 200) {
-                setMessages((prevMessages) => [...prevMessages, messageBody]);
-                // We do not call socket.publish here to avoid duplication.
-                // The backend sends the message via messagingTemplate.
-                setMessage("");
+            let response;
+            let newMessage;
+
+            if (group) {
+                newMessage = {groupId: group, senderId, content: message.trim()};
+                response = await sendMessageInGroup(newMessage);
+                if (response.status === 200) {
+                    setMessage("");
+                }
+            } else {
+                newMessage = {senderId, receiverId, content: message.trim()};
+                response = await sendChat(newMessage);
+                if (response.status === 200) {
+                    setMessages((prevMessages) => [...prevMessages, newMessage]);
+                    setMessage("");
+                }
             }
         } catch (error) {
             console.error("Error sending message:", error);
@@ -110,12 +137,32 @@ const ChatModal = ({ open, onClose, user }) => {
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <Box sx={{ backgroundColor: "#222", color: "#fff" }}>
-                <DialogTitle sx={{ backgroundColor: "#333", color: "#fff", textAlign: "center" }}>
-                    Chat with {user?.userName}
-                </DialogTitle>
+            <Box sx={{backgroundColor: "#222", color: "#fff"}}>
+                <Box>
+                    <DialogTitle
+                        sx={{
+                            backgroundColor: "#333",
+                            color: "#fff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between", // Push items to left & right
+                            padding: "8px 16px", // Adjust padding for better alignment
+                        }}
+                    >
+                        <Box sx={{ flexGrow: 1, textAlign: "center" }}>
+                            {group ? "Group Chat" : `Chat with ${user?.userName}`}
+                        </Box>
 
-                <DialogContent dividers sx={{ backgroundColor: "#222", minHeight: 300, maxHeight: 400 }}>
+                        {group && (
+                            <IconButton sx={{ color: "#fff" }}>
+                                <AddIcon />
+                            </IconButton>
+                        )}
+                    </DialogTitle>
+                </Box>
+
+
+                <DialogContent dividers sx={{backgroundColor: "#222", minHeight: 300, maxHeight: 400}}>
                     <Box
                         sx={{
                             height: 300,
@@ -141,19 +188,28 @@ const ChatModal = ({ open, onClose, user }) => {
                                         alignSelf: msg.senderId === senderId ? "flex-end" : "flex-start",
                                     }}
                                 >
+                                    {group && (
+                                        <Typography variant="caption" sx={{color: "#bbb"}}>
+                                            {msg.senderName}:
+                                        </Typography>
+                                    )}
                                     <Typography>{msg.content}</Typography>
+                                    <Typography variant="caption"
+                                                sx={{color: "#ccc", fontSize: "0.75rem", textAlign: "right"}}>
+                                        {dayjs(msg.timestamp).format("MMM D, YYYY h:mm A")}
+                                    </Typography>
                                 </Box>
                             ))
                         ) : (
-                            <Typography sx={{ color: "#aaa", textAlign: "center" }}>
+                            <Typography sx={{color: "#aaa", textAlign: "center"}}>
                                 Start chatting with {user?.userName}...
                             </Typography>
                         )}
-                        <div ref={messagesEndRef} />
+                        <div ref={messagesEndRef}/>
                     </Box>
                 </DialogContent>
 
-                <Box sx={{ backgroundColor: "#222", padding: 2 }}>
+                <Box sx={{backgroundColor: "#222", padding: 2}}>
                     <TextField
                         fullWidth
                         placeholder="Type a message..."
@@ -162,14 +218,14 @@ const ChatModal = ({ open, onClose, user }) => {
                         onChange={(e) => setMessage(e.target.value)}
                         sx={{
                             backgroundColor: "#333",
-                            input: { color: "#fff" },
-                            fieldset: { borderColor: "#555" }
+                            input: {color: "#fff"},
+                            fieldset: {borderColor: "#555"}
                         }}
                     />
                 </Box>
 
-                <DialogActions sx={{ backgroundColor: "#333" }}>
-                    <Button onClick={onClose} sx={{ color: "#fff" }}>Close Chat</Button>
+                <DialogActions sx={{backgroundColor: "#333"}}>
+                    <Button onClick={onClose} sx={{color: "#fff"}}>Close Chat</Button>
                     <Button color="primary" variant="contained" onClick={handleSendButton}>Send</Button>
                 </DialogActions>
             </Box>

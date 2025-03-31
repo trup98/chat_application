@@ -3,7 +3,7 @@ import {toast, Zoom} from "react-toastify";
 import {fourteenMinutesTime, getCookie, setCookie} from "./Cookie-store";
 
 
-export const BASE_URL = 'http://localhost:9050';
+export const BASE_URL = 'http://192.168.10.131:9050';
 
 export const axiosInstance = axios.create({
     baseURL: BASE_URL,

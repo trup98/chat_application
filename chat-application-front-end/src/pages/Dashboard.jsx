@@ -17,11 +17,11 @@ import {
     Typography,
     TextField,
     Tabs,
-    Tab
+    Tab, Pagination
 } from "@mui/material";
 import {useNavigate} from "react-router-dom";
 import {toast, Zoom} from "react-toastify";
-import {callAllUser} from "../api/auth/userApi";
+import {callAllUser, deleteUser} from "../api/auth/userApi";
 import DensityMediumIcon from "@mui/icons-material/DensityMedium";
 import ChatModal from "../modal/ChatModal";
 import {getUserId, getUserName, removeUserSession} from "../config/Cookie-store";
@@ -53,7 +53,6 @@ const Dashboard = () => {
         callAllUser(value, value ? 0 : currentPage, pageSize, senderId)
             .then((response) => {
                 if (response.status === 200) {
-                    console.log("response in if>>>", response);
                     setUsers(response.data.content);
                     setTotalPages(response.data.totalPages);
                 }
@@ -88,15 +87,13 @@ const Dashboard = () => {
         }
     }, [currentPage, value, tabIndex]);
 
+    const handlePageChange = (pageNumber) => {
+        setCurrentPage(pageNumber);
+    };
+
     const handleTabChange = (event, newValue) => {
         setTabIndex(newValue);
         setCurrentPage(0);
-    };
-
-    const handleOpenModal = (user) => {
-        setSelectedUser(user);
-        setIsGroup(!!user.memberCount);
-        setOpenModal(true);
     };
 
     const handleCloseModal = () => {
@@ -104,8 +101,16 @@ const Dashboard = () => {
         setSelectedUser(null);
     };
 
-    const handleStartChat = () => {
-        setOpenModal(false);
+    const handleOpenModal = (item) => {
+        setSelectedUser(item);
+        setIsGroup(!!item.memberCount);
+        setOpenModal(true);
+    };
+
+    const handleStartChatModal = (item) => {
+        console.log("item in start chat modal >>> ", item);
+        setSelectedUser(item);
+        setIsGroup(item.memberCount ? item.id : null);
         setChatOpen(true);
     };
 
@@ -122,36 +127,39 @@ const Dashboard = () => {
         navigate("/");
     };
 
-
     const handleCreateModalClose = () => {
         setOpenGroupModal(false);
         getAllGroups();
     }
 
-    const handleDeleteGroup = async () => {
-        console.log("Handle Delete Group>>>>", selectedUser);
+    const handleDelete = async () => {
         if (!selectedUser?.id) return;
 
         try {
-            const response = await deleteGroup(selectedUser.id);
-            if (response.status === 200) {
-                toast.success("Group deleted successfully!", {
-                    transition: Zoom
-                });
-                getAllGroups();
-                setOpenModal(false);
+            if (isGroup) {
+                const response = await deleteGroup(selectedUser.id, senderId);
+                console.log("response>>", response)
+                if (response.status === 200) {
+                    toast.success("Group deleted successfully!", {transition: Zoom});
+                    getAllGroups();
+                }
+            } else {
+                const userToDelete = selectedUser.id;
+                const response = await deleteUser(userToDelete);
+                if (response.status === 200) {
+                    toast.success(response.data.message, {
+                        transition: "Zoom"
+                    })
+                    getAllUsers(currentPage);
+                }
             }
-
+            setOpenModal(false);
         } catch (error) {
-            toast.error("Failed to delete group", {
-                transition: Zoom
-            });
+            console.log("error >>",error)
+            toast.error(error.data?.message || "Failed to delete", {transition: Zoom});
+            setOpenModal(false);
         }
     };
-
-    const handleUserDelete = () => {
-
-    }
 
     return (
         <Box sx={{position: "relative", backgroundColor: "#000", minHeight: "100vh", padding: 2}}>
@@ -256,7 +264,10 @@ const Dashboard = () => {
 
                                     {/*{userName or group name}*/}
                                     <TableCell sx={{color: "#fff"}}>
-                                        {tabIndex === 0 ? item.userName : item.name}
+                                        <Typography sx={{cursor: "pointer", textDecoration: "underline"}}
+                                                    onClick={() => handleStartChatModal(item)}>
+                                            {tabIndex === 0 ? item.userName : item.name}
+                                        </Typography>
                                     </TableCell>
 
                                     {/*{email or member count}*/}
@@ -281,29 +292,46 @@ const Dashboard = () => {
                         )}
                     </TableBody>
                 </Table>
+                <div className="d-flex justify-content-center">
+                    <Pagination>
+                        {[...Array(users.totalPages)].map((_, index) => (
+                            <Pagination.Item
+                                key={index}
+                                active={index === users.pageNumber}
+                                onClick={() => handlePageChange(index)}
+                            >
+                                {index + 1}
+                            </Pagination.Item>
+                        ))}
+                    </Pagination>
+                </div>
             </TableContainer>
             {/* Conditional Dialog */}
             <Dialog open={openModal} onClose={handleCloseModal}
                     sx={{"& .MuiPaper-root": {backgroundColor: "#222", color: "#fff"}}}>
-                <DialogTitle>{isGroup ? "Delete Group" : "Start Chat"}</DialogTitle>
+                <DialogTitle>Delete {isGroup ? "Group" : "User"}</DialogTitle>
                 <DialogContent>
-                    <Typography>{isGroup ? "Are you sure you want to delete this group?" : `Start chat with ${selectedUser?.userName}?`}</Typography>
+                    <Typography>
+                        Are you sure you want to delete this {isGroup ? "group" : "user"}?
+                    </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseModal} variant="outlined">Cancel</Button>
-                    <Button onClick={isGroup ? handleDeleteGroup : handleStartChat} variant="contained">
-                        {isGroup ? "Delete" : "Start"}
+                <Button onClick={handleCloseModal} variant="outlined">Cancel</Button>
+                    <Button onClick={handleDelete} variant="contained" color="error">
+                        Delete
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            <ChatModal open={chatOpen} onClose={() => setChatOpen(false)} user={selectedUser}/>
+
+            <ChatModal open={chatOpen} onClose={() => setChatOpen(false)} user={selectedUser} group={isGroup}/>
             <LogoutModal open={logoutOpen} onClose={handleCloseLogout} onLogout={handleLogout}/>
             {openGroupModal && (<CreateGroupModal
                 open={openGroupModal}
                 onClose={handleCreateModalClose}
                 senderId={senderId}
             />)}
+
         </Box>
     );
 };
