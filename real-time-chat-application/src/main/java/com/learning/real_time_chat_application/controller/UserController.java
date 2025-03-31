@@ -20,6 +20,7 @@ import java.util.Collections;
 @RequestMapping("/api/v1/user")
 @Slf4j
 @RequiredArgsConstructor
+@CrossOrigin("http://localhost:3000")
 public class UserController {
     private final UserService userService;
 

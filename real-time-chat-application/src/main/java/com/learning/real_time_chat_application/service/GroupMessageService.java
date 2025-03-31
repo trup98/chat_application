@@ -19,5 +19,5 @@ public interface GroupMessageService {
 
     List<GroupDTO> getGroupsWithAssociateUser(Long userId);
 
-    void deleteGroup(Long groupId);
+    void deleteGroup(Long groupId,Long userId);
 }

@@ -32,6 +32,7 @@ public enum ExceptionEnum {
     RECEIVER_NOT_FOUND("Receiver not found", "RECEIVER_NOT_FOUND"),
     CONVERSATION_NOT_FOUND("Conversation not found", "CONVERSATION_NOT_FOUND"),
     GROUP_NOT_FOUND("Group not found", "GROUP_NOT_FOUND"),
+    ONLY_ADMIN_CAN_DELETE_GROUP("Only Admin Can Delete Group", "ONLY_ADMIN_CAN_DELETE_GROUP"),
 
     ;
 

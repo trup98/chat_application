@@ -125,13 +125,20 @@ public class GroupMessageServiceImpl implements GroupMessageService {
     }
 
     @Override
-    public void deleteGroup(Long groupId) {
+    public void deleteGroup(Long groupId, Long userId) {
         GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+        if (!groupEntity.getCreatedBy().getId().equals(userId)) {
+            throw new CustomException(ExceptionEnum.ONLY_ADMIN_CAN_DELETE_GROUP.getMessage(), HttpStatus.UNAUTHORIZED);
+        }
         List<GroupMemberEntity> groupMemberEntities = this.groupMemberRepository.findByGroupId(groupEntity.getId());
         List<GroupMessageEntity> groupMessageEntity = this.groupMessageRepository.findByGroupId(groupEntity.getId());
+
         groupEntity.setIsDeleted(true);
         groupEntity.setIsActive(false);
+
         groupRepository.save(groupEntity);
+
         if (groupMemberEntities.isEmpty()) {
             throw new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
         } else {

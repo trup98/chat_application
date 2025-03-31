@@ -18,11 +18,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws") // ✅ Raw WebSocket
-                .setAllowedOrigins("http://localhost:3000")
+                .setAllowedOrigins("http://localhost:3000","http://192.168.10.131:3000")
                 .addInterceptors(webSocketAuthInterceptor);
 
         registry.addEndpoint("/ws") // ✅ SockJS fallback
-                .setAllowedOrigins("http://localhost:3000")
+                .setAllowedOrigins("http://localhost:3000","http://192.168.10.131:3000")
                 .addInterceptors(webSocketAuthInterceptor)
                 .withSockJS();
     }

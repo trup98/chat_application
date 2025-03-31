@@ -20,7 +20,9 @@ public interface GroupRepository extends JpaRepository<GroupEntity, Long> {
 
     @Query("""
                 SELECT new com.learning.real_time_chat_application.projection.dto.GroupDTO(
-                    g.id, g.groupName, COUNT(gm.user.id)
+                    g.id, g.groupName, 
+                    CAST((SELECT COUNT(DISTINCT gm2.user.id) FROM GroupMemberEntity gm2 
+                          WHERE gm2.group.id = g.id AND gm2.isActive = true) AS long)
                 ) 
                 FROM GroupEntity g
                 JOIN GroupMemberEntity gm ON g.id = gm.group.id

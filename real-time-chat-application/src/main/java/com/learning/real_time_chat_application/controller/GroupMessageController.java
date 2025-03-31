@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.sql.ast.tree.expression.Collation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -23,6 +24,7 @@ import java.util.List;
 public class GroupMessageController {
 
     private final GroupMessageService groupMessageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/crete")
     public ResponseEntity<ApiResponse> createGroup(@RequestBody GroupCreationRequestDto groupCreationRequestDto) {
@@ -33,10 +35,11 @@ public class GroupMessageController {
     @PostMapping("/send")
     public ResponseEntity<ApiResponse> sendMessageToGroup(@RequestBody GroupMessageRequestDto groupMessageRequestDto) {
         GroupMessageResponse groupMessageResponse = this.groupMessageService.sendMessageToGroup(groupMessageRequestDto);
+        messagingTemplate.convertAndSend("/topic/group/" + groupMessageRequestDto.getGroupId(), groupMessageResponse);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Message Sent Successfully In Group", groupMessageResponse), HttpStatus.OK);
     }
 
-    @GetMapping("/getGroup/{groupId}")
+    @GetMapping("/getGroupMessage/{groupId}")
     public ResponseEntity<ApiResponse> getGroup(@PathVariable Long groupId) {
         List<GroupMessageResponse> groupMessageResponses = this.groupMessageService.getGroupMessages(groupId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Messages Found Successfully In Group", groupMessageResponses), HttpStatus.OK);
@@ -54,9 +57,9 @@ public class GroupMessageController {
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Group Found Successfully", allGroupAssociateUser), HttpStatus.OK);
     }
 
-    @DeleteMapping("/deleteGroup/{groupId}")
-    public ResponseEntity<ApiResponse> deleteGroup(@PathVariable Long groupId) {
-        this.groupMessageService.deleteGroup(groupId);
+    @DeleteMapping("/deleteGroup/{groupId}/{senderId}")
+    public ResponseEntity<ApiResponse> deleteGroup(@PathVariable Long groupId, @PathVariable Long senderId) {
+        this.groupMessageService.deleteGroup(groupId, senderId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Group Found Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
