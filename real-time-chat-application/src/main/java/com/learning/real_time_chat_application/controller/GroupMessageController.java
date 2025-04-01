@@ -2,13 +2,10 @@ package com.learning.real_time_chat_application.controller;
 
 import com.learning.real_time_chat_application.dto.request.GroupCreationRequestDto;
 import com.learning.real_time_chat_application.dto.request.GroupMessageRequestDto;
-import com.learning.real_time_chat_application.dto.response.ApiResponse;
-import com.learning.real_time_chat_application.dto.response.GroupMessageResponse;
-import com.learning.real_time_chat_application.dto.response.GroupResponse;
+import com.learning.real_time_chat_application.dto.response.*;
 import com.learning.real_time_chat_application.projection.dto.GroupDTO;
 import com.learning.real_time_chat_application.service.GroupMessageService;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.sql.ast.tree.expression.Collation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -61,6 +58,35 @@ public class GroupMessageController {
     public ResponseEntity<ApiResponse> deleteGroup(@PathVariable Long groupId, @PathVariable Long senderId) {
         this.groupMessageService.deleteGroup(groupId, senderId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Group Found Successfully", Collections.emptyMap()), HttpStatus.OK);
+    }
+
+    @GetMapping("/getMembers/{groupId}")
+    public ResponseEntity<ApiResponse> getMembers(@PathVariable Long groupId) {
+        List<GroupMemberDTO> members = this.groupMessageService.getMembers(groupId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Group Members Found Successfully", members), HttpStatus.OK);
+    }
+
+    @PostMapping("/addUser/group/{groupId}")
+    public ResponseEntity<ApiResponse> addUserToGroup(@PathVariable Long groupId, @RequestBody List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty() || userIds.contains(null)) {
+            return new ResponseEntity<>(new ApiResponse(HttpStatus.BAD_REQUEST, "Invalid user IDs", Collections.emptyMap()), HttpStatus.BAD_REQUEST);
+        }
+
+        this.groupMessageService.addUserToExistingGroup(groupId, userIds);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Added Successfully", Collections.emptyMap()), HttpStatus.OK);
+    }
+
+    @GetMapping("/available/users/{groupId}")
+    public ResponseEntity<ApiResponse> getAvailableUsers(@PathVariable Long groupId) {
+        List<UserAvailableDTO> availableUsers = this.groupMessageService.getAvailableUsers(groupId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Added In Group Successfully", availableUsers), HttpStatus.OK);
+
+    }
+
+    @DeleteMapping("/delete/user/{groupId}/{userId}")
+    public ResponseEntity<ApiResponse> deleteUserFromGroup(@PathVariable Long groupId, @PathVariable Long userId) {
+        this.groupMessageService.deleteUserFromGroup(groupId, userId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Added Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
 }

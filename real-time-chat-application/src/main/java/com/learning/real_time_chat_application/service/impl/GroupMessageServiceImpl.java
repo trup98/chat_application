@@ -2,8 +2,10 @@ package com.learning.real_time_chat_application.service.impl;
 
 import com.learning.real_time_chat_application.dto.request.GroupCreationRequestDto;
 import com.learning.real_time_chat_application.dto.request.GroupMessageRequestDto;
+import com.learning.real_time_chat_application.dto.response.GroupMemberDTO;
 import com.learning.real_time_chat_application.dto.response.GroupMessageResponse;
 import com.learning.real_time_chat_application.dto.response.GroupResponse;
+import com.learning.real_time_chat_application.dto.response.UserAvailableDTO;
 import com.learning.real_time_chat_application.entity.GroupEntity;
 import com.learning.real_time_chat_application.entity.GroupMemberEntity;
 import com.learning.real_time_chat_application.entity.GroupMessageEntity;
@@ -54,7 +56,7 @@ public class GroupMessageServiceImpl implements GroupMessageService {
     }
 
     private GroupResponse mapToGroupResponse(GroupEntity groupEntity) {
-        List<Long> members = groupMemberRepository.findByGroup(groupEntity)
+        List<Long> members = groupMemberRepository.findByGroupAndIsActiveTrue(groupEntity)
                 .stream().map(member -> member.getUser().getId()).collect(Collectors.toList());
         GroupResponse response = new GroupResponse();
         response.setGroupName(groupEntity.getGroupName());
@@ -140,7 +142,7 @@ public class GroupMessageServiceImpl implements GroupMessageService {
         groupRepository.save(groupEntity);
 
         if (groupMemberEntities.isEmpty()) {
-            throw new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
+            throw new CustomException(ExceptionEnum.GROUP_MEMBER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
         } else {
             for (GroupMemberEntity memberInGroup : groupMemberEntities) {
                 memberInGroup.setIsDeleted(true);
@@ -158,6 +160,61 @@ public class GroupMessageServiceImpl implements GroupMessageService {
 //            }
 //        }
 
+
+    }
+
+    @Override
+    public List<GroupMemberDTO> getMembers(Long groupId) {
+        GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+        List<GroupMemberEntity> groupsMembers = this.groupMemberRepository.findByGroupAndIsActiveTrue(groupEntity);
+
+        return groupsMembers.stream().map(members -> new GroupMemberDTO(
+                        members.getUser().getId(), members.getUser().getUserName()))
+                .collect(Collectors.toList());
+
+    }
+
+    @Override
+    public void addUserToExistingGroup(Long groupId, List<Long> userIds) {
+        UserEntity currentUser = utilities.currentUser();
+        GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+        for (Long userId : userIds) {
+            UserEntity userEntity = this.userRepository.findById(userId).orElseThrow(() -> new CustomException(ExceptionEnum.USER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+            if (userEntity != null) {
+                GroupMemberEntity groupMemberEntity = new GroupMemberEntity();
+                groupMemberEntity.setGroup(groupEntity);
+                groupMemberEntity.setUser(userEntity);
+                groupMemberEntity.setJoinedAt(LocalDateTime.now());
+                groupMemberEntity.setCreatedBy(currentUser);
+                groupMemberEntity.setUpdatedBy(currentUser);
+                this.groupMemberRepository.save(groupMemberEntity);
+            }
+        }
+    }
+
+    @Override
+    public List<UserAvailableDTO> getAvailableUsers(Long groupId) {
+        List<UserEntity> allUsers = this.userRepository.findAll();
+        List<UserEntity> usersByGroupId = this.groupMemberRepository.findUsersByGroupId(groupId);
+
+        return allUsers.stream()
+                .filter(users -> !usersByGroupId.contains(users))
+                .map(user -> new UserAvailableDTO(user.getId(), user.getUserName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteUserFromGroup(Long groupId, Long userId) {
+        GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        UserEntity userEntity = this.userRepository.findById(userId).orElseThrow(() -> new CustomException(ExceptionEnum.USER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+        GroupMemberEntity groupMemberEntity = this.groupMemberRepository.findByGroupAndUser(groupEntity, userEntity).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_OR_USER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+        groupMemberEntity.setIsDeleted(true);
+        groupMemberEntity.setIsActive(false);
+        this.groupMemberRepository.save(groupMemberEntity);
 
     }
 }
