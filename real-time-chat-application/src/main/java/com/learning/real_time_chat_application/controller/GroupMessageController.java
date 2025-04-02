@@ -73,20 +73,20 @@ public class GroupMessageController {
         }
 
         this.groupMessageService.addUserToExistingGroup(groupId, userIds);
-        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Added Successfully", Collections.emptyMap()), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Added To Group Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
     @GetMapping("/available/users/{groupId}")
     public ResponseEntity<ApiResponse> getAvailableUsers(@PathVariable Long groupId) {
         List<UserAvailableDTO> availableUsers = this.groupMessageService.getAvailableUsers(groupId);
-        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Added In Group Successfully", availableUsers), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Found Successfully", availableUsers), HttpStatus.OK);
 
     }
 
     @DeleteMapping("/delete/user/{groupId}/{userId}")
     public ResponseEntity<ApiResponse> deleteUserFromGroup(@PathVariable Long groupId, @PathVariable Long userId) {
         this.groupMessageService.deleteUserFromGroup(groupId, userId);
-        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Added Successfully", Collections.emptyMap()), HttpStatus.OK);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Deleted Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
 }

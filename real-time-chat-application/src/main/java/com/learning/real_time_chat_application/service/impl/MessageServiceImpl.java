@@ -61,7 +61,9 @@ public class MessageServiceImpl implements MessageService {
 
         ConversationEntity conversationBetweenUsers = conversationService.findConversationBetweenUsers(senderUserId, receiverUserId);
 
-        List<MessagesEntity> messages = messageRepository.findByConversationId(conversationBetweenUsers.getId());
+//        List<MessagesEntity> messages = messageRepository.findByConversationId(conversationBetweenUsers.getId());
+        List<MessagesEntity> messages = messageRepository.findByConversationIdSorted(conversationBetweenUsers.getId());
+
 
         return messages.stream().
                 map(message -> MessageResponseDto.builder()

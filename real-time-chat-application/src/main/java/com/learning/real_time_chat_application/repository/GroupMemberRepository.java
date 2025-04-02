@@ -24,8 +24,9 @@ public interface GroupMemberRepository extends JpaRepository<GroupMemberEntity, 
 
     Optional<GroupMemberEntity> findByGroupAndUser(GroupEntity group, UserEntity user);
 
-    @Query("SELECT gm.user FROM GroupMemberEntity gm WHERE gm.group.id = :groupId")
+    //    @Query("SELECT gm.user FROM GroupMemberEntity gm WHERE gm.group.id = :groupId")
+//    List<UserEntity> findUsersByGroupId(@Param("groupId") Long groupId);
+    @Query("SELECT gm.user FROM GroupMemberEntity gm WHERE gm.group.id = :groupId AND gm.isDeleted = false")
     List<UserEntity> findUsersByGroupId(@Param("groupId") Long groupId);
-
 
 }

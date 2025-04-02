@@ -24,7 +24,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -178,14 +180,33 @@ public class GroupMessageServiceImpl implements GroupMessageService {
     @Override
     public void addUserToExistingGroup(Long groupId, List<Long> userIds) {
         UserEntity currentUser = utilities.currentUser();
-        GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        GroupEntity groupEntity = this.groupRepository.findById(groupId)
+                .orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
 
         for (Long userId : userIds) {
-            UserEntity userEntity = this.userRepository.findById(userId).orElseThrow(() -> new CustomException(ExceptionEnum.USER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
-            if (userEntity != null) {
+            UserEntity userEntity = this.userRepository.findById(userId)
+                    .orElseThrow(() -> new CustomException(ExceptionEnum.USER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+            // Check if user was previously in the group
+            Optional<GroupMemberEntity> existingMembership = this.groupMemberRepository.findByGroupAndUser(groupEntity, userEntity);
+
+            if (existingMembership.isPresent()) {
+                GroupMemberEntity groupMember = existingMembership.get();
+                if (groupMember.getIsDeleted()) {
+                    // Reactivate the user
+                    groupMember.setIsDeleted(false);
+                    groupMember.setIsActive(true);
+                    groupMember.setUpdatedBy(currentUser);
+                    groupMember.setLastModifiedDate(new Date());
+                    this.groupMemberRepository.save(groupMember);
+                }
+            } else {
+                // User is new to the group, create a new record
                 GroupMemberEntity groupMemberEntity = new GroupMemberEntity();
                 groupMemberEntity.setGroup(groupEntity);
                 groupMemberEntity.setUser(userEntity);
+                groupMemberEntity.setIsActive(true);
+                groupMemberEntity.setIsDeleted(false);
                 groupMemberEntity.setJoinedAt(LocalDateTime.now());
                 groupMemberEntity.setCreatedBy(currentUser);
                 groupMemberEntity.setUpdatedBy(currentUser);
@@ -193,6 +214,7 @@ public class GroupMessageServiceImpl implements GroupMessageService {
             }
         }
     }
+
 
     @Override
     public List<UserAvailableDTO> getAvailableUsers(Long groupId) {
@@ -217,4 +239,5 @@ public class GroupMessageServiceImpl implements GroupMessageService {
         this.groupMemberRepository.save(groupMemberEntity);
 
     }
+
 }
