@@ -14,16 +14,23 @@ import {
     Button,
     Typography
 } from "@mui/material";
+import {removeUserFromGroup} from "../api/auth/groupApi";
+import {toast} from "react-toastify";
 
 // MembersModal Component
-const MembersModal = ({open, onClose, members,refreshGroupMembers}) => {
+const MembersModal = ({open, onClose, members, groupId, refreshGroupMembers}) => {
+
 
     const handleRemoveUser = async (userId) => {
+        console.log("userId >>>>", userId);
         try {
-            // const response = await removeUserFromGroup(groupId, userId);
-            // if (response.status === 200) {
-            //     refreshGroupMembers(); // Refresh the group members list after removal
-            // }
+            const response = await removeUserFromGroup(groupId, userId);
+            if (response.status === 200) {
+                refreshGroupMembers();
+                toast.success(response.data.message, {
+                    transition: "Zoom"
+                });
+            }
         } catch (error) {
             console.error("Error removing user:", error);
         }
@@ -35,7 +42,7 @@ const MembersModal = ({open, onClose, members,refreshGroupMembers}) => {
                 Group Members
             </DialogTitle>
             <DialogContent sx={{backgroundColor: "#222", color: "#fff"}}>
-                <TableContainer component={Paper} sx={{backgroundColor: "#333",marginTop:"12px"}}>
+                <TableContainer component={Paper} sx={{backgroundColor: "#333", marginTop: "12px"}}>
                     <Table sx={{minWidth: 450}} aria-label="simple table">
                         <TableHead>
                             <TableRow>
@@ -50,7 +57,7 @@ const MembersModal = ({open, onClose, members,refreshGroupMembers}) => {
                                         <TableCell sx={{color: "#fff"}}>
                                             {member.userName}
                                         </TableCell>
-                                        <TableCell sx={{ color: "#fff" }}>
+                                        <TableCell sx={{color: "#fff"}}>
                                             <Button
                                                 variant="contained"
                                                 color="error"

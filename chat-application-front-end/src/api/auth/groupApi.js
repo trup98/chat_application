@@ -32,3 +32,7 @@ export const getAvailableUsers = async (groupId) => {
 export const addUsersToGroup = async (groupId, userIds) => {
     return axiosInstance.post(`/api/group/messages/addUser/group/${groupId}`, userIds).then(response => response.data);
 };
+
+export const removeUserFromGroup = async (groupId, userId) => {
+    return axiosInstance.delete(`/api/group/messages/delete/user/${groupId}/${userId}`).then(response => response.data);
+}

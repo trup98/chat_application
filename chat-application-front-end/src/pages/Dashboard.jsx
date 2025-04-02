@@ -17,7 +17,7 @@ import {
     Typography,
     TextField,
     Tabs,
-    Tab, Pagination
+    Tab, Pagination, Avatar
 } from "@mui/material";
 import {useNavigate} from "react-router-dom";
 import {toast, Zoom} from "react-toastify";
@@ -58,8 +58,12 @@ const Dashboard = () => {
                 }
             })
             .catch((error) => {
-                toast.error(error.data.message, {transition: Zoom});
-                setUsers([]);
+                console.log("error >>> ", error)
+                if (error?.status === 403) {
+                    toast.error(error.message, {transition: Zoom});
+                    setUsers([]);
+                    handleLogout();
+                }
             });
     };
 
@@ -73,8 +77,12 @@ const Dashboard = () => {
                 }
             })
             .catch((error) => {
-                toast.error(error.data.message, {transition: Zoom});
-                setGroups([]);
+                console.log("error >>> ", error)
+                if (error?.status === 403) {
+                    toast.error(error.message, {transition: Zoom});
+                    setUsers([]);
+                    handleLogout();
+                }
             });
     };
 
@@ -155,11 +163,15 @@ const Dashboard = () => {
             }
             setOpenModal(false);
         } catch (error) {
-            console.log("error >>",error)
             toast.error(error.data?.message || "Failed to delete", {transition: Zoom});
             setOpenModal(false);
         }
     };
+
+    const handleChatModalClose = () => {
+        setChatOpen(false);
+        getAllGroups();
+    }
 
     return (
         <Box sx={{position: "relative", backgroundColor: "#000", minHeight: "100vh", padding: 2}}>
@@ -242,11 +254,11 @@ const Dashboard = () => {
                 <Table sx={{minWidth: 800, maxWidth: 1200, width: "100%"}} aria-label="table">
                     <TableHead>
                         <TableRow sx={{backgroundColor: "#333"}}>
-                            <TableCell sx={{color: "#fff", fontWeight: "bold"}}>Index</TableCell>
-                            <TableCell sx={{color: "#fff", fontWeight: "bold"}}>
+                            <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="left">Index</TableCell>
+                            <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="left">
                                 {tabIndex === 0 ? "User Name" : "Group Name"}
                             </TableCell>
-                            <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="right">
+                            <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="left">
                                 {tabIndex === 0 ? "Email" : "Members"}
                             </TableCell>
                             <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="right">Action</TableCell>
@@ -260,22 +272,37 @@ const Dashboard = () => {
                                     '&:nth-of-type(even)': {backgroundColor: "#1e1e1e"},
                                     '&:hover': {backgroundColor: "#444"}
                                 }}>
-                                    <TableCell sx={{color: "#fff"}}>{index + 1}</TableCell>
+                                    <TableCell sx={{color: "#fff"}} align="left">{index + 1}</TableCell>
 
-                                    {/*{userName or group name}*/}
-                                    <TableCell sx={{color: "#fff"}}>
-                                        <Typography sx={{cursor: "pointer", textDecoration: "underline"}}
-                                                    onClick={() => handleStartChatModal(item)}>
+                                    {/* Profile Picture + Name in One Line */}
+                                    <TableCell sx={{color: "#fff", display: "flex", alignItems: "center", gap: "8px"}}
+                                               align="left">
+                                        {/* Profile Picture */}
+                                        <Avatar
+                                            src={tabIndex === 0 ? item.profilePicture : item.groupImage}
+                                            alt={tabIndex === 0 ? item.userName : item.name}
+                                            sx={{width: 40, height: 40, bgcolor: "#555", color: "#fff"}}
+                                        >
+                                            {/* Show Initials if No Profile Picture */}
+                                            {(!item.profilePicture && tabIndex === 0) ? item.userName.charAt(0).toUpperCase() : ""}
+                                            {(!item.groupImage && tabIndex === 1) ? item.name.charAt(0).toUpperCase() : ""}
+                                        </Avatar>
+
+                                        {/* Name */}
+                                        <Typography
+                                            sx={{cursor: "pointer", textDecoration: "underline"}}
+                                            onClick={() => handleStartChatModal(item)}
+                                        >
                                             {tabIndex === 0 ? item.userName : item.name}
                                         </Typography>
                                     </TableCell>
 
-                                    {/*{email or member count}*/}
-                                    <TableCell sx={{color: "#fff"}} align="right">
+                                    {/* Email or Member Count */}
+                                    <TableCell sx={{color: "#fff"}} align="left">
                                         {tabIndex === 0 ? item.email : item.memberCount ?? 0}
                                     </TableCell>
 
-                                    {/*{action button}*/}
+                                    {/* Action Button */}
                                     <TableCell align="right">
                                         <IconButton onClick={() => handleOpenModal(item)}>
                                             <DensityMediumIcon sx={{color: "#fff"}}/>
@@ -292,6 +319,7 @@ const Dashboard = () => {
                         )}
                     </TableBody>
                 </Table>
+
                 <div className="d-flex justify-content-center">
                     <Pagination>
                         {[...Array(users.totalPages)].map((_, index) => (
@@ -316,7 +344,7 @@ const Dashboard = () => {
                     </Typography>
                 </DialogContent>
                 <DialogActions>
-                <Button onClick={handleCloseModal} variant="outlined">Cancel</Button>
+                    <Button onClick={handleCloseModal} variant="outlined">Cancel</Button>
                     <Button onClick={handleDelete} variant="contained" color="error">
                         Delete
                     </Button>
@@ -324,7 +352,8 @@ const Dashboard = () => {
             </Dialog>
 
 
-            <ChatModal open={chatOpen} onClose={() => setChatOpen(false)} user={selectedUser} group={isGroup}/>
+            {chatOpen &&
+                <ChatModal open={chatOpen} onClose={handleChatModalClose} user={selectedUser} group={isGroup}/>}
             <LogoutModal open={logoutOpen} onClose={handleCloseLogout} onLogout={handleLogout}/>
             {openGroupModal && (<CreateGroupModal
                 open={openGroupModal}

@@ -142,7 +142,6 @@ const ChatModal = ({open, onClose, user, group}) => {
     const handleInfoIconClick = async () => {
         if (group) {
             try {
-                console.log("group>>>>>", group)
                 const response = await getGroupMembers(group);
                 if (response.status === 200) {
                     setGroupMembers(response.data);
@@ -179,8 +178,8 @@ const ChatModal = ({open, onClose, user, group}) => {
                                     <IconButton sx={{color: "#fff"}} onClick={handleInfoIconClick}>
                                         <InfoIcon/>
                                     </IconButton>
-                                    <IconButton sx={{ color: "#fff" }} onClick={() => setAddMembersModalOpen(true)}>
-                                        <AddIcon />
+                                    <IconButton sx={{color: "#fff"}} onClick={() => setAddMembersModalOpen(true)}>
+                                        <AddIcon/>
                                     </IconButton>
                                 </>
                             )}
@@ -265,12 +264,12 @@ const ChatModal = ({open, onClose, user, group}) => {
                 groupId={group}
                 refreshGroupMembers={handleInfoIconClick}
             />
-            <AddMembersModal
+            {addMembersModalOpen && <AddMembersModal
                 open={addMembersModalOpen}
                 onClose={() => setAddMembersModalOpen(false)}
                 groupId={group}
                 refreshGroupMembers={handleInfoIconClick}
-            />
+            />}
         </>
 
 

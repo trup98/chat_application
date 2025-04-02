@@ -13,9 +13,9 @@ import {
     Paper, TableCell, TableRow,
 } from "@mui/material";
 import {addUsersToGroup, getAvailableUsers} from "../api/auth/groupApi";
+import {toast} from "react-toastify";
 
 const AddMembersModal = ({open, onClose, groupId, refreshGroupMembers}) => {
-    console.log("groupId >>>>", groupId)
     const [users, setUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
 
@@ -29,6 +29,9 @@ const AddMembersModal = ({open, onClose, groupId, refreshGroupMembers}) => {
         try {
             const response = await getAvailableUsers(groupId);
             if (response.status === 200) {
+                toast.success(response.data.message, {
+                    transition: "Zoom"
+                })
                 setUsers(response.data);
             }
         } catch (error) {
@@ -37,7 +40,6 @@ const AddMembersModal = ({open, onClose, groupId, refreshGroupMembers}) => {
     };
 
     const handleSelectUser = (userId) => {
-        console.log("userId >>> ", userId);
         setSelectedUsers((prev) =>
             prev.includes(userId)
                 ? prev.filter((id) => id !== userId)
@@ -55,6 +57,9 @@ const AddMembersModal = ({open, onClose, groupId, refreshGroupMembers}) => {
 
             const response = await addUsersToGroup(groupId, validUserIds);
             if (response.status === 200) {
+                toast.success(response.data.message, {
+                    transition: "Zoom",
+                })
                 refreshGroupMembers();
                 onClose();
             }
@@ -85,7 +90,6 @@ const AddMembersModal = ({open, onClose, groupId, refreshGroupMembers}) => {
                                         }
                                         label={<ListItemText primary={user.userName} sx={{color: "#fff"}}/>}
                                     />
-                                    {console.log("user id >>>>>", user.userId)}
                                 </ListItem>
                             ))
                         ) : (
