@@ -25,4 +25,8 @@ public class UserEntity extends BaseEntity {
 
     @Column(name = "email")
     private String email;
+
+    @Column(name = "user_profile_s3_url")
+    private String userProfileS3Url;
+
 }

@@ -26,4 +26,7 @@ public class GroupEntity extends BaseEntity {
     @JoinColumn(name = "created_by", nullable = false)
     private UserEntity createdBy;
 
+    @Column(name = "profile_picture")
+    private String profilePicture;
+
 }

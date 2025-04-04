@@ -10,7 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -89,4 +91,9 @@ public class GroupMessageController {
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Members Deleted Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
+    @PostMapping("/setProfile/picture/{groupId}")
+    public ResponseEntity<ApiResponse> setProfilePicture(@PathVariable Long groupId, @RequestParam("file") MultipartFile file) throws IOException {
+        this.groupMessageService.setProfilePicture(groupId, file);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Profile Picture Uploaded Successfully", Collections.emptyMap()), HttpStatus.OK);
+    }
 }

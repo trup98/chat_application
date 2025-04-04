@@ -12,25 +12,54 @@ import java.util.List;
 @Repository
 public interface GroupRepository extends JpaRepository<GroupEntity, Long> {
 
-    @Query("SELECT new com.learning.real_time_chat_application.projection.dto.GroupDTO(g.id, g.groupName, COUNT(gm.id)) " +
-            "FROM GroupEntity g " +
-            "LEFT JOIN GroupMemberEntity gm ON g.id = gm.group.id " +
-            "GROUP BY g.id, g.groupName")
+//    @Query("SELECT new com.learning.real_time_chat_application.projection.dto.GroupDTO(g.id, g.groupName, COUNT(gm.id)) " +
+//            "FROM GroupEntity g " +
+//            "LEFT JOIN GroupMemberEntity gm ON g.id = gm.group.id " +
+//            "GROUP BY g.id, g.groupName")
+//    List<GroupDTO> getAllGroupsWithMemberCount();
+
+//    @Query("""
+//                SELECT new com.learning.real_time_chat_application.projection.dto.GroupDTO(
+//                    g.id, g.groupName,
+//                    CAST((SELECT COUNT(DISTINCT gm2.user.id) FROM GroupMemberEntity gm2
+//                          WHERE gm2.group.id = g.id AND gm2.isActive = true) AS long)
+//                )
+//                FROM GroupEntity g
+//                JOIN GroupMemberEntity gm ON g.id = gm.group.id
+//                WHERE gm.user.id = :userId
+//                  AND g.isActive = true
+//                  AND gm.isActive = true
+//                GROUP BY g.id, g.groupName
+//            """)
+//    List<GroupDTO> findGroupsByUserId(@Param("userId") Long userId);
+
+
+    @Query("""
+                SELECT new com.learning.real_time_chat_application.projection.dto.GroupDTO(
+                    g.id, g.groupName, COUNT(gm.id), g.profilePicture
+                ) 
+                FROM GroupEntity g
+                LEFT JOIN GroupMemberEntity gm ON g.id = gm.group.id
+                GROUP BY g.id, g.groupName, g.profilePicture
+            """)
     List<GroupDTO> getAllGroupsWithMemberCount();
+
 
     @Query("""
                 SELECT new com.learning.real_time_chat_application.projection.dto.GroupDTO(
                     g.id, g.groupName, 
                     CAST((SELECT COUNT(DISTINCT gm2.user.id) FROM GroupMemberEntity gm2 
-                          WHERE gm2.group.id = g.id AND gm2.isActive = true) AS long)
+                          WHERE gm2.group.id = g.id AND gm2.isActive = true) AS long),
+                    g.profilePicture 
                 ) 
                 FROM GroupEntity g
                 JOIN GroupMemberEntity gm ON g.id = gm.group.id
                 WHERE gm.user.id = :userId 
                   AND g.isActive = true 
                   AND gm.isActive = true
-                GROUP BY g.id, g.groupName
+                GROUP BY g.id, g.groupName, g.profilePicture 
             """)
     List<GroupDTO> findGroupsByUserId(@Param("userId") Long userId);
+
 
 }

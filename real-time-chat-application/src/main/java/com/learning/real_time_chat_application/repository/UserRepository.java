@@ -17,7 +17,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByIdAndIsActiveTrue(Long id);
 
 
-    @Query(value = "SELECT um.id AS id, um.user_name AS userName, um.email AS email " +
+    @Query(value = "SELECT um.id AS id, um.user_name AS userName, um.email AS email, um.user_profile_s3_url AS userProfileS3Url " +
             "FROM user_master um " +
             "WHERE um.is_active = TRUE " +
             "AND um.id <> :loggedInUserId " +
@@ -28,7 +28,16 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
                                  @Param("searchKey") String searchKey,
                                  @Param("loggedInUserId") Long loggedInUserId);
 
-
+//    @Query(value = "SELECT um.id AS id, um.user_name AS userName, um.email AS email " +
+//            "FROM user_master um " +
+//            "WHERE um.is_active = TRUE " +
+//            "AND um.id <> :loggedInUserId " +
+//            "AND (um.user_name ILIKE '%' || :searchKey || '%' " +
+//            "OR um.email ILIKE '%' || :searchKey || '%')",
+//            nativeQuery = true)
+//    Page<GetAllUser> findAllUser(Pageable pageable,
+//                                 @Param("searchKey") String searchKey,
+//                                 @Param("loggedInUserId") Long loggedInUserId);
 
 
     Optional<UserEntity> findByEmail(String username);

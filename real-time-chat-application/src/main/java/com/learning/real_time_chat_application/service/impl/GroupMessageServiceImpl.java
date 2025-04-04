@@ -1,5 +1,6 @@
 package com.learning.real_time_chat_application.service.impl;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.learning.real_time_chat_application.dto.request.GroupCreationRequestDto;
 import com.learning.real_time_chat_application.dto.request.GroupMessageRequestDto;
 import com.learning.real_time_chat_application.dto.response.GroupMemberDTO;
@@ -20,13 +21,14 @@ import com.learning.real_time_chat_application.repository.UserRepository;
 import com.learning.real_time_chat_application.service.GroupMessageService;
 import com.learning.real_time_chat_application.utill.Utilities;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +39,12 @@ public class GroupMessageServiceImpl implements GroupMessageService {
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
     private final Utilities utilities;
+    private final AmazonS3 amazonS3;
+    private final S3Service s3Service;
+
+
+    @Value("${aws.s3.bucket.name}")
+    private String bucketName;
 
     @Override
     public GroupResponse createGroup(GroupCreationRequestDto groupCreationRequestDto) {
@@ -108,10 +116,7 @@ public class GroupMessageServiceImpl implements GroupMessageService {
     @Override
     public List<GroupMessageResponse> getGroupMessages(Long groupId) {
         GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
-
         return this.groupMessageRepository.findByGroupOrderByTimestampAsc(groupEntity).stream().map(this::mapToGroupMessageResponse).collect(Collectors.toList());
-
-
     }
 
     @Override
@@ -125,7 +130,14 @@ public class GroupMessageServiceImpl implements GroupMessageService {
         if (groupsByAssociateUser.isEmpty()) {
             throw new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
         }
-        return groupsByAssociateUser;
+        System.out.println("groupsByAssociateUser = " + groupsByAssociateUser);
+        return groupsByAssociateUser.stream().map(user -> {
+            String preSignedUrl = null;
+            if (user.getGroupImage() != null && !user.getGroupImage().isEmpty()) {
+                preSignedUrl = s3Service.generatePreSignedUrl(user.getGroupImage());
+            }
+            return new GroupDTO(user.getId(), user.getName(), user.getMemberCount(), preSignedUrl);
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -240,4 +252,34 @@ public class GroupMessageServiceImpl implements GroupMessageService {
 
     }
 
+    @Override
+    public void setProfilePicture(Long groupId, MultipartFile file) throws IOException {
+        // Validate file size (10 MB)
+        long fileSize = 10 * 1024 * 1024;
+        if (file.getSize() > fileSize) {
+            throw new CustomException(ExceptionEnum.FILE_SIZE_EXCEEDED.getMessage(), HttpStatus.PAYLOAD_TOO_LARGE);
+        }
+
+        // Validate file type
+        List<String> allowedFileTypes = Arrays.asList("image/jpeg", "image/png", "application/pdf", "text/plain");
+        String fileContentType = file.getContentType();
+        if (!allowedFileTypes.contains(fileContentType)) {
+            throw new CustomException(ExceptionEnum.INVALID_FILE_TYPE.getMessage(), HttpStatus.NOT_ACCEPTABLE);
+        }
+
+        // Generate a unique filename
+        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+        amazonS3.putObject(bucketName, fileName, file.getInputStream(), null);
+
+        // Upload the file to S3
+        UserEntity currentUser = utilities.currentUser();
+
+        GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        groupEntity.setUpdatedBy(currentUser);
+        groupEntity.setLastModifiedDate(new Date());
+        groupEntity.setProfilePicture(fileName);
+        this.groupRepository.save(groupEntity);
+
+    }
 }

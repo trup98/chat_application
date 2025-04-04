@@ -17,11 +17,11 @@ import {
     Typography,
     TextField,
     Tabs,
-    Tab, Pagination, Avatar
+    Tab, Pagination, Avatar, Menu, MenuItem
 } from "@mui/material";
 import {useNavigate} from "react-router-dom";
 import {toast, Zoom} from "react-toastify";
-import {callAllUser, deleteUser} from "../api/auth/userApi";
+import {callAllUser, deleteUser, removeProfilePicture, uploadProfilePicture} from "../api/auth/userApi";
 import DensityMediumIcon from "@mui/icons-material/DensityMedium";
 import ChatModal from "../modal/ChatModal";
 import {getUserId, getUserName, removeUserSession} from "../config/Cookie-store";
@@ -29,6 +29,9 @@ import LogoutModal from "./auth/LogoutModal";
 import {callAllGroups, deleteGroup} from "../api/auth/groupApi";
 import AddIcon from "@mui/icons-material/Add";
 import CreateGroupModal from "../modal/CreateGroupModal";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 
 
 const Dashboard = () => {
@@ -48,6 +51,12 @@ const Dashboard = () => {
     const [openGroupModal, setOpenGroupModal] = useState(false);
     const [isGroup, setIsGroup] = useState(false);
 
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [selectedProfile, setSelectedProfile] = useState(null);
+    const [openDialog, setOpenDialog] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState(null);
+
+
     // Fetch Users
     const getAllUsers = (currentPage) => {
         callAllUser(value, value ? 0 : currentPage, pageSize, senderId)
@@ -58,7 +67,6 @@ const Dashboard = () => {
                 }
             })
             .catch((error) => {
-                console.log("error >>> ", error)
                 if (error?.status === 403) {
                     toast.error(error.message, {transition: Zoom});
                     setUsers([]);
@@ -77,7 +85,6 @@ const Dashboard = () => {
                 }
             })
             .catch((error) => {
-                console.log("error >>> ", error)
                 if (error?.status === 403) {
                     toast.error(error.message, {transition: Zoom});
                     setUsers([]);
@@ -116,7 +123,6 @@ const Dashboard = () => {
     };
 
     const handleStartChatModal = (item) => {
-        console.log("item in start chat modal >>> ", item);
         setSelectedUser(item);
         setIsGroup(item.memberCount ? item.id : null);
         setChatOpen(true);
@@ -146,7 +152,6 @@ const Dashboard = () => {
         try {
             if (isGroup) {
                 const response = await deleteGroup(selectedUser.id, senderId);
-                console.log("response>>", response)
                 if (response.status === 200) {
                     toast.success("Group deleted successfully!", {transition: Zoom});
                     getAllGroups();
@@ -172,6 +177,63 @@ const Dashboard = () => {
         setChatOpen(false);
         getAllGroups();
     }
+
+    const handleAvatarClick = (event, item) => {
+        setAnchorEl(event.currentTarget);
+        setSelectedProfile(tabIndex === 0 ? item.userProfileS3Link : item.groupImage);
+        setSelectedUserId(item.id);
+    };
+
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
+
+    const handleViewProfile = () => {
+        setOpenDialog(true);
+        handleClose();
+    };
+
+    const handleDeleteProfile = async () => {
+        try {
+            // Call API to delete profile picture
+            const response = await removeProfilePicture(selectedUserId);
+            if (response.status === 200) {
+                toast.success(response.data.message, {
+                    transition: "Zoom",
+                })
+            }
+            getAllUsers(currentPage);
+        } catch (error) {
+            toast.error("Failed to delete profile picture.");
+        }
+        handleClose();
+    };
+
+    const handleChangeProfile = () => {
+        document.getElementById("fileInput").click();
+        handleClose();
+    };
+
+    const handleFileUpload = async (event) => {
+
+        const file = event.target.files[0];
+
+        if (file && selectedUserId) {
+            try {
+                const response = await uploadProfilePicture(selectedUserId, file);
+                if (response.status === 200) {
+                    toast.success("Profile picture updated successfully!");
+                    getAllUsers(currentPage);
+                }
+
+            } catch (error) {
+                console.error("Error uploading file:", error);
+                toast.error("Failed to update profile picture.");
+            }
+        } else {
+            toast.error("No file selected or user ID missing.");
+        }
+    };
 
     return (
         <Box sx={{position: "relative", backgroundColor: "#000", minHeight: "100vh", padding: 2}}>
@@ -279,12 +341,18 @@ const Dashboard = () => {
                                                align="left">
                                         {/* Profile Picture */}
                                         <Avatar
-                                            src={tabIndex === 0 ? item.profilePicture : item.groupImage}
+                                            src={tabIndex === 0 ? item.userProfileS3Link : item.groupImage}
                                             alt={tabIndex === 0 ? item.userName : item.name}
-                                            sx={{width: 40, height: 40, bgcolor: "#555", color: "#fff"}}
+                                            sx={{
+                                                width: 40,
+                                                height: 40,
+                                                bgcolor: "#555",
+                                                color: "#fff",
+                                                cursor: "pointer"
+                                            }}
+                                            onClick={(e) => handleAvatarClick(e, item)}
                                         >
-                                            {/* Show Initials if No Profile Picture */}
-                                            {(!item.profilePicture && tabIndex === 0) ? item.userName.charAt(0).toUpperCase() : ""}
+                                            {(!item.userProfileS3Link && tabIndex === 0) ? item.userName.charAt(0).toUpperCase() : ""}
                                             {(!item.groupImage && tabIndex === 1) ? item.name.charAt(0).toUpperCase() : ""}
                                         </Avatar>
 
@@ -360,6 +428,36 @@ const Dashboard = () => {
                 onClose={handleCreateModalClose}
                 senderId={senderId}
             />)}
+
+            {/* Profile Picture Menu */}
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
+                <MenuItem onClick={handleViewProfile}>
+                    <VisibilityIcon sx={{mr: 1}}/> View Profile Picture
+                </MenuItem>
+                <MenuItem onClick={handleDeleteProfile}>
+                    <DeleteIcon sx={{mr: 1}}/> Delete Profile Picture
+                </MenuItem>
+                <MenuItem onClick={handleChangeProfile}>
+                    <PhotoCameraIcon sx={{mr: 1}}/> Change Profile Picture
+                </MenuItem>
+            </Menu>
+
+            {/* Profile Picture Dialog */}
+            <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+                <DialogContent>
+                    <img src={selectedProfile} alt="Profile" style={{maxWidth: "100%", height: "auto"}}/>
+                </DialogContent>
+            </Dialog>
+
+            {/* Hidden File Input */}
+            <input
+                type="file"
+                id="fileInput"
+                style={{display: "none"}}
+                accept="image/*"
+                onChange={handleFileUpload}
+            />
+
 
         </Box>
     );

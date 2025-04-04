@@ -9,4 +9,5 @@ public class GroupDTO {
     private Long id;
     private String name;
     private Long memberCount;
+    private String groupImage;
 }

@@ -7,7 +7,9 @@ import com.learning.real_time_chat_application.dto.response.GroupMessageResponse
 import com.learning.real_time_chat_application.dto.response.GroupResponse;
 import com.learning.real_time_chat_application.dto.response.UserAvailableDTO;
 import com.learning.real_time_chat_application.projection.dto.GroupDTO;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface GroupMessageService {
@@ -31,4 +33,5 @@ public interface GroupMessageService {
 
     void deleteUserFromGroup(Long groupId, Long userId);
 
+    void setProfilePicture(Long groupId, MultipartFile file) throws IOException;
 }

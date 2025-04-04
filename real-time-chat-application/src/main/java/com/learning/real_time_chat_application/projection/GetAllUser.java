@@ -7,4 +7,6 @@ public interface GetAllUser {
     String getUserName();
 
     String getEmail();
+
+    String getUserProfileS3Url();
 }

@@ -35,9 +35,9 @@ public enum ExceptionEnum {
     ONLY_ADMIN_CAN_DELETE_GROUP("Only Admin Can Delete Group", "ONLY_ADMIN_CAN_DELETE_GROUP"),
     GROUP_MEMBER_NOT_FOUND("Group Member not found", "GROUP_MEMBER_NOT_FOUND"),
     GROUP_OR_USER_NOT_FOUND("Group or User Not Found", "GROUP_OR_USER_NOT_FOUND"),
-
+    FILE_SIZE_EXCEEDED("File size exceeds the maximum allowed limit of 10 MB.", "FILE_SIZE_EXCEEDED"),
+    INVALID_FILE_TYPE("Invalid file type. Only JPEG, PNG, and PDF files are allowed.", "INVALID_FILE_TYPE"),
     ;
-
 
     private final String message;
     private final String value;
