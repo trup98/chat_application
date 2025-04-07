@@ -31,3 +31,7 @@ export const uploadProfilePicture = async (userId, file) => {
 export const removeProfilePicture = async (userId) => {
     return await axiosInstance.delete(`/api/v1/user/remove/profile/${userId}`).then(response => response.data);
 }
+
+export const deleteConversation = async (senderId, receiverId) => {
+    return await axiosInstance.delete(`/api/messages/delete/conversation?senderId=${senderId}&receiverId=${receiverId}`).then(response => response.data);
+}

@@ -96,4 +96,10 @@ public class GroupMessageController {
         this.groupMessageService.setProfilePicture(groupId, file);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Profile Picture Uploaded Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
+
+    @DeleteMapping("/remove/profile/{groupId}")
+    public ResponseEntity<ApiResponse> removeProfilePicture(@PathVariable Long groupId) {
+        this.groupMessageService.removeProfilePicture(groupId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Profile Picture Removed Successfully", Collections.emptyMap()), HttpStatus.OK);
+    }
 }

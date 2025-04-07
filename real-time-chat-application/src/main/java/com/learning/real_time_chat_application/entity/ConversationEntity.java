@@ -2,6 +2,7 @@ package com.learning.real_time_chat_application.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "conversation_master")
@@ -25,6 +26,12 @@ public class ConversationEntity {
     @JoinColumn(name = "user_2", nullable = false)
     private UserEntity user2;
 
+    @Column(name = "is_active", nullable = false)
+    @ColumnDefault("true")
+    private Boolean isActive;
+    @Column(name = "is_delete", nullable = false)
+    @ColumnDefault("false")
+    private Boolean isDeleted;
 
 
 }

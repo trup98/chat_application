@@ -11,6 +11,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -34,6 +35,12 @@ public class MessageController {
     public ResponseEntity<ApiResponse> historyMessages(@RequestParam Long senderId, @RequestParam Long receiverId) {
         List<MessageResponseDto> chatHistory = messageService.getChatHistory(senderId, receiverId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Chat Found Successfully", chatHistory), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete/conversation")
+    public ResponseEntity<ApiResponse> deleteConversation(@RequestParam Long senderId, @RequestParam Long receiverId) {
+        this.messageService.deleteConversation(senderId,receiverId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Chat Deleted Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
 

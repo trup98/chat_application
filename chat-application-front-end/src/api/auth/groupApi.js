@@ -36,3 +36,18 @@ export const addUsersToGroup = async (groupId, userIds) => {
 export const removeUserFromGroup = async (groupId, userId) => {
     return axiosInstance.delete(`/api/group/messages/delete/user/${groupId}/${userId}`).then(response => response.data);
 }
+
+export const changeProfilePicture = async (groupId, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return await axiosInstance.post(`/api/group/messages/setProfile/picture/${groupId}`, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data"
+        }
+    }).then(response => response.data);
+}
+
+export const removeProfilePictureInGroup = async (groupId) => {
+    return axiosInstance.delete(`api/group/messages/remove/profile/${groupId}`).then(response => response.data);
+}

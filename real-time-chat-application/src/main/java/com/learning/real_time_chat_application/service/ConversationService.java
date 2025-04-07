@@ -11,4 +11,6 @@ public interface ConversationService {
     MessagesEntity saveMessage(UserEntity sender, UserEntity receiver, MessageRequestDto messageRequestDto, ConversationEntity conversationEntity);
 
     ConversationEntity findConversationBetweenUsers(UserEntity senderUserId, UserEntity receiverUserId);
+
+
 }

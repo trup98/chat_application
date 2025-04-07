@@ -61,9 +61,7 @@ public class MessageServiceImpl implements MessageService {
 
         ConversationEntity conversationBetweenUsers = conversationService.findConversationBetweenUsers(senderUserId, receiverUserId);
 
-//        List<MessagesEntity> messages = messageRepository.findByConversationId(conversationBetweenUsers.getId());
         List<MessagesEntity> messages = messageRepository.findByConversationIdSorted(conversationBetweenUsers.getId());
-
 
         return messages.stream().
                 map(message -> MessageResponseDto.builder()
@@ -78,4 +76,19 @@ public class MessageServiceImpl implements MessageService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+        @Override
+    public void deleteConversation(Long senderId, Long receiverId) {
+        UserEntity senderUserId = this.userRepository.findById(senderId).orElseThrow(() -> new CustomException(ExceptionEnum.SENDER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        UserEntity receiverUserId = this.userRepository.findById(receiverId).orElseThrow(() -> new CustomException(ExceptionEnum.RECEIVER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        ConversationEntity conversationBetweenUsers = this.conversationService.findConversationBetweenUsers(senderUserId, receiverUserId);
+
+        List<MessagesEntity> byConversationIdSorted = this.messageRepository.findByConversationIdSorted(conversationBetweenUsers.getId());
+        byConversationIdSorted.forEach(message -> {
+            message.setIsDeleted(true);
+            message.setIsActive(false);
+            this.messageRepository.save(message);
+        });
+    }
+
 }

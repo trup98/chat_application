@@ -21,12 +21,18 @@ import {
 } from "@mui/material";
 import {useNavigate} from "react-router-dom";
 import {toast, Zoom} from "react-toastify";
-import {callAllUser, deleteUser, removeProfilePicture, uploadProfilePicture} from "../api/auth/userApi";
+import {
+    callAllUser,
+    deleteConversation,
+    deleteUser,
+    removeProfilePicture,
+    uploadProfilePicture
+} from "../api/auth/userApi";
 import DensityMediumIcon from "@mui/icons-material/DensityMedium";
 import ChatModal from "../modal/ChatModal";
 import {getUserId, getUserName, removeUserSession} from "../config/Cookie-store";
 import LogoutModal from "./auth/LogoutModal";
-import {callAllGroups, deleteGroup} from "../api/auth/groupApi";
+import {callAllGroups, changeProfilePicture, deleteGroup, removeProfilePictureInGroup} from "../api/auth/groupApi";
 import AddIcon from "@mui/icons-material/Add";
 import CreateGroupModal from "../modal/CreateGroupModal";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -50,11 +56,12 @@ const Dashboard = () => {
     const senderId = parseInt(getUserId("userId"), 10);
     const [openGroupModal, setOpenGroupModal] = useState(false);
     const [isGroup, setIsGroup] = useState(false);
-
     const [anchorEl, setAnchorEl] = useState(null);
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
+    const [deleteChatUser, setDeleteChatUser] = useState(null);
+    const [openDeleteChatDialog, setOpenDeleteChatDialog] = useState(false);
 
 
     // Fetch Users
@@ -195,14 +202,18 @@ const Dashboard = () => {
 
     const handleDeleteProfile = async () => {
         try {
-            // Call API to delete profile picture
-            const response = await removeProfilePicture(selectedUserId);
-            if (response.status === 200) {
-                toast.success(response.data.message, {
-                    transition: "Zoom",
-                })
+            let response;
+            if (tabIndex === 1) {
+                response = await removeProfilePictureInGroup(selectedUserId)
+            } else {
+                response = await removeProfilePicture(selectedUserId);
             }
-            getAllUsers(currentPage);
+            if (response.status === 200) {
+                getAllUsers(currentPage);
+                getAllGroups();
+                toast.success(response.message)
+            }
+
         } catch (error) {
             toast.error("Failed to delete profile picture.");
         }
@@ -219,11 +230,18 @@ const Dashboard = () => {
         const file = event.target.files[0];
 
         if (file && selectedUserId) {
+
             try {
-                const response = await uploadProfilePicture(selectedUserId, file);
+                let response;
+                if (tabIndex === 1) {
+                    response = await changeProfilePicture(selectedUserId, file);
+                } else {
+                    response = await uploadProfilePicture(selectedUserId, file);
+                }
                 if (response.status === 200) {
-                    toast.success("Profile picture updated successfully!");
                     getAllUsers(currentPage);
+                    getAllGroups();
+                    toast.success(response.message);
                 }
 
             } catch (error) {
@@ -234,6 +252,25 @@ const Dashboard = () => {
             toast.error("No file selected or user ID missing.");
         }
     };
+
+    const handleDeleteChatHistory = (user) => {
+        setDeleteChatUser(user);
+        setOpenDeleteChatDialog(true);
+    };
+
+    const confirmDeleteChatHistory = async () => {
+        try {
+            const response = await deleteConversation(senderId, deleteChatUser.id);
+            if (response.status === 200) {
+                toast.success(`Chat history with ${deleteChatUser.userName} deleted successfully!`);
+            }
+            setOpenDeleteChatDialog(false);
+        } catch (error) {
+            toast.error("Failed to delete chat history.");
+            setOpenDeleteChatDialog(false);
+        }
+    };
+
 
     return (
         <Box sx={{position: "relative", backgroundColor: "#000", minHeight: "100vh", padding: 2}}>
@@ -256,9 +293,9 @@ const Dashboard = () => {
                 backgroundColor: "#222",
                 color: "#fff",
                 borderRadius: 2,
-                minWidth: 800,
-                maxWidth: 1200,
-                width: "90%",
+                minWidth: 1000,
+                maxWidth: "95vw",
+                width: "95%",
                 padding: 2,
                 margin: "0 auto",
                 marginTop: 20
@@ -313,7 +350,7 @@ const Dashboard = () => {
                     </Box>
                 </Box>
 
-                <Table sx={{minWidth: 800, maxWidth: 1200, width: "100%"}} aria-label="table">
+                <Table sx={{minWidth: 1000, width: "100%"}} aria-label="table">
                     <TableHead>
                         <TableRow sx={{backgroundColor: "#333"}}>
                             <TableCell sx={{color: "#fff", fontWeight: "bold"}} align="left">Index</TableCell>
@@ -334,6 +371,7 @@ const Dashboard = () => {
                                     '&:nth-of-type(even)': {backgroundColor: "#1e1e1e"},
                                     '&:hover': {backgroundColor: "#444"}
                                 }}>
+
                                     <TableCell sx={{color: "#fff"}} align="left">{index + 1}</TableCell>
 
                                     {/* Profile Picture + Name in One Line */}
@@ -370,8 +408,14 @@ const Dashboard = () => {
                                         {tabIndex === 0 ? item.email : item.memberCount ?? 0}
                                     </TableCell>
 
-                                    {/* Action Button */}
+                                    {/* Action and Delete conversation Button */}
                                     <TableCell align="right">
+                                        <IconButton
+                                            onClick={() => handleDeleteChatHistory(item)}
+                                            sx={{color: "#ff4d4f", marginRight: 1}}
+                                        >
+                                            <DeleteIcon/>
+                                        </IconButton>
                                         <IconButton onClick={() => handleOpenModal(item)}>
                                             <DensityMediumIcon sx={{color: "#fff"}}/>
                                         </IconButton>
@@ -402,6 +446,7 @@ const Dashboard = () => {
                     </Pagination>
                 </div>
             </TableContainer>
+
             {/* Conditional Dialog */}
             <Dialog open={openModal} onClose={handleCloseModal}
                     sx={{"& .MuiPaper-root": {backgroundColor: "#222", color: "#fff"}}}>
@@ -428,6 +473,28 @@ const Dashboard = () => {
                 onClose={handleCreateModalClose}
                 senderId={senderId}
             />)}
+            <Dialog
+                open={openDeleteChatDialog}
+                onClose={() => setOpenDeleteChatDialog(false)}
+                sx={{"& .MuiPaper-root": {backgroundColor: "#222", color: "#fff"}}}
+            >
+                <DialogTitle>Delete Conversation</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to delete the conversation
+                        with <strong>{deleteChatUser?.userName}</strong>?
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenDeleteChatDialog(false)} variant="outlined">
+                        Cancel
+                    </Button>
+                    <Button onClick={confirmDeleteChatHistory} variant="contained" color="error">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
 
             {/* Profile Picture Menu */}
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>

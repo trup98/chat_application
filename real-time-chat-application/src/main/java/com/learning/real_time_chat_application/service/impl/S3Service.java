@@ -40,7 +40,7 @@ public class S3Service {
                 .build();
 
         GetObjectPresignRequest preSignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(60))  // URL valid for 60 minutes
+                .signatureDuration(Duration.ofMinutes(60))
                 .getObjectRequest(getObjectRequest)
                 .build();
 

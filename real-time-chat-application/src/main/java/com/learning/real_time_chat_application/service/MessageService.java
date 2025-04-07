@@ -10,6 +10,5 @@ public interface MessageService {
 
     List<MessageResponseDto> getChatHistory(Long senderId, Long receiverId);
 
-
-
+    void deleteConversation(Long senderId, Long receiverId);
 }

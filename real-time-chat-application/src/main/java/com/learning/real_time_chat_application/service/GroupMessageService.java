@@ -34,4 +34,6 @@ public interface GroupMessageService {
     void deleteUserFromGroup(Long groupId, Long userId);
 
     void setProfilePicture(Long groupId, MultipartFile file) throws IOException;
+
+    void removeProfilePicture(Long groupId);
 }

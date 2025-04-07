@@ -19,6 +19,7 @@ import com.learning.real_time_chat_application.repository.GroupMessageRepository
 import com.learning.real_time_chat_application.repository.GroupRepository;
 import com.learning.real_time_chat_application.repository.UserRepository;
 import com.learning.real_time_chat_application.service.GroupMessageService;
+import com.learning.real_time_chat_application.utill.FileValidationUtils;
 import com.learning.real_time_chat_application.utill.Utilities;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -130,7 +131,6 @@ public class GroupMessageServiceImpl implements GroupMessageService {
         if (groupsByAssociateUser.isEmpty()) {
             throw new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND);
         }
-        System.out.println("groupsByAssociateUser = " + groupsByAssociateUser);
         return groupsByAssociateUser.stream().map(user -> {
             String preSignedUrl = null;
             if (user.getGroupImage() != null && !user.getGroupImage().isEmpty()) {
@@ -227,7 +227,6 @@ public class GroupMessageServiceImpl implements GroupMessageService {
         }
     }
 
-
     @Override
     public List<UserAvailableDTO> getAvailableUsers(Long groupId) {
         List<UserEntity> allUsers = this.userRepository.findAll();
@@ -254,32 +253,41 @@ public class GroupMessageServiceImpl implements GroupMessageService {
 
     @Override
     public void setProfilePicture(Long groupId, MultipartFile file) throws IOException {
-        // Validate file size (10 MB)
-        long fileSize = 10 * 1024 * 1024;
-        if (file.getSize() > fileSize) {
-            throw new CustomException(ExceptionEnum.FILE_SIZE_EXCEEDED.getMessage(), HttpStatus.PAYLOAD_TOO_LARGE);
-        }
 
-        // Validate file type
-        List<String> allowedFileTypes = Arrays.asList("image/jpeg", "image/png", "application/pdf", "text/plain");
-        String fileContentType = file.getContentType();
-        if (!allowedFileTypes.contains(fileContentType)) {
-            throw new CustomException(ExceptionEnum.INVALID_FILE_TYPE.getMessage(), HttpStatus.NOT_ACCEPTABLE);
-        }
+        // Validate the file size and content type
+        FileValidationUtils.validateFile(file);
 
         // Generate a unique filename
         String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
 
+        // Upload the file to S3
         amazonS3.putObject(bucketName, fileName, file.getInputStream(), null);
 
-        // Upload the file to S3
+
         UserEntity currentUser = utilities.currentUser();
 
         GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        String profilePicture = groupEntity.getProfilePicture();
+        // If the file is already present in s3 delete it first from s3
+        if (profilePicture != null && !profilePicture.isEmpty()) {
+            s3Service.deleteFileFromS3(profilePicture);
+        }
+
         groupEntity.setUpdatedBy(currentUser);
         groupEntity.setLastModifiedDate(new Date());
         groupEntity.setProfilePicture(fileName);
         this.groupRepository.save(groupEntity);
 
+    }
+
+    @Override
+    public void removeProfilePicture(Long groupId) {
+        GroupEntity groupEntity = this.groupRepository.findById(groupId).orElseThrow(() -> new CustomException(ExceptionEnum.GROUP_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        String profilePicture = groupEntity.getProfilePicture();
+        if (profilePicture != null && !profilePicture.isEmpty()) {
+            s3Service.deleteFileFromS3(profilePicture);
+            groupEntity.setProfilePicture(null);
+            this.groupRepository.save(groupEntity);
+        }
     }
 }

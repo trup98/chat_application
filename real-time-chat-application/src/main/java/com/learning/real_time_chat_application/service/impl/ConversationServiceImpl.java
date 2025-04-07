@@ -56,4 +56,6 @@ public class ConversationServiceImpl implements ConversationService {
                 .orElseThrow(() -> new CustomException(ExceptionEnum.CONVERSATION_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND))
         );
     }
+
+
 }
