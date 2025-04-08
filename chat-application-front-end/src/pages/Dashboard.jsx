@@ -24,7 +24,7 @@ import {toast, Zoom} from "react-toastify";
 import {
     callAllUser,
     deleteConversation,
-    deleteUser,
+    deleteUser, getUnreadCount, markMessageRead,
     removeProfilePicture,
     uploadProfilePicture
 } from "../api/auth/userApi";
@@ -38,6 +38,8 @@ import CreateGroupModal from "../modal/CreateGroupModal";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import ClearAllIcon from '@mui/icons-material/ClearAll';
+import Tooltip from '@mui/material/Tooltip';
 
 
 const Dashboard = () => {
@@ -62,24 +64,35 @@ const Dashboard = () => {
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [deleteChatUser, setDeleteChatUser] = useState(null);
     const [openDeleteChatDialog, setOpenDeleteChatDialog] = useState(false);
+    const [unreadCounts, setUnreadCounts] = useState({});
 
 
     // Fetch Users
-    const getAllUsers = (currentPage) => {
-        callAllUser(value, value ? 0 : currentPage, pageSize, senderId)
-            .then((response) => {
-                if (response.status === 200) {
-                    setUsers(response.data.content);
-                    setTotalPages(response.data.totalPages);
-                }
-            })
-            .catch((error) => {
-                if (error?.status === 403) {
-                    toast.error(error.message, {transition: Zoom});
-                    setUsers([]);
-                    handleLogout();
-                }
-            });
+    const getAllUsers = async (currentPage) => {
+        try {
+            const response = await callAllUser(value, value ? 0 : currentPage, pageSize, senderId);
+            if (response.status === 200) {
+                const users = response.data.content;
+                setUsers(users);
+                setTotalPages(response.data.totalPages);
+
+                const unreadRes = await getUnreadCount(senderId);
+                const unreadList = unreadRes.data.data;
+
+                const countMap = {};
+                unreadList.forEach(({senderId, unreadCount}) => {
+                    countMap[senderId] = unreadCount;
+                });
+
+                setUnreadCounts(countMap);
+            }
+        } catch (error) {
+            if (error?.status === 403) {
+                toast.error(error.message, {transition: Zoom});
+                setUsers([]);
+                handleLogout();
+            }
+        }
     };
 
     // Fetch Groups
@@ -133,6 +146,21 @@ const Dashboard = () => {
         setSelectedUser(item);
         setIsGroup(item.memberCount ? item.id : null);
         setChatOpen(true);
+        if (tabIndex === 0) {
+            // This is a one-on-one chat
+            const receiverId = senderId;      // Current logged-in user
+            const sender = item.id;           // Person clicked
+
+            markMessagesAsRead(sender, receiverId);
+        }
+    };
+
+    const markMessagesAsRead = async (senderId, receiverId) => {
+        try {
+            await markMessageRead(senderId, receiverId);
+        } catch (error) {
+            console.error("Error marking messages as read", error);
+        }
     };
 
     const handleOpenLogout = () => {
@@ -183,6 +211,7 @@ const Dashboard = () => {
     const handleChatModalClose = () => {
         setChatOpen(false);
         getAllGroups();
+        getAllUsers(currentPage);
     }
 
     const handleAvatarClick = (event, item) => {
@@ -394,13 +423,47 @@ const Dashboard = () => {
                                             {(!item.groupImage && tabIndex === 1) ? item.name.charAt(0).toUpperCase() : ""}
                                         </Avatar>
 
-                                        {/* Name */}
-                                        <Typography
-                                            sx={{cursor: "pointer", textDecoration: "underline"}}
+                                        {/* Name and Unread message*/}
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                cursor: "pointer",
+                                            }}
                                             onClick={() => handleStartChatModal(item)}
                                         >
-                                            {tabIndex === 0 ? item.userName : item.name}
-                                        </Typography>
+                                            <Typography
+                                                sx={{
+                                                    fontWeight: tabIndex === 0 && unreadCounts[item.id] > 0 ? "bold" : "normal",
+                                                    color: "#fff",
+                                                }}
+                                            >
+                                                {tabIndex === 0 ? item.userName : item.name}
+                                            </Typography>
+
+                                            {tabIndex === 0 && unreadCounts[item.id] > 0 && (
+                                                <Box
+                                                    sx={{
+                                                        backgroundColor: "#25D366",
+                                                        color: "#fff",
+                                                        fontSize: "12px",
+                                                        fontWeight: "bold",
+                                                        minWidth: 20,
+                                                        height: 20,
+                                                        borderRadius: "50%",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        marginLeft: 1,
+                                                        paddingX: 1,
+                                                    }}
+                                                >
+                                                    {unreadCounts[item.id]}
+                                                </Box>
+                                            )}
+                                        </Box>
+
+
                                     </TableCell>
 
                                     {/* Email or Member Count */}
@@ -410,12 +473,14 @@ const Dashboard = () => {
 
                                     {/* Action and Delete conversation Button */}
                                     <TableCell align="right">
-                                        <IconButton
-                                            onClick={() => handleDeleteChatHistory(item)}
-                                            sx={{color: "#ff4d4f", marginRight: 1}}
-                                        >
-                                            <DeleteIcon/>
-                                        </IconButton>
+                                        <Tooltip title="Clear Chat" arrow>
+                                            <IconButton
+                                                onClick={() => handleDeleteChatHistory(item)}
+                                                sx={{color: "#ff4d4f", marginRight: 1}}
+                                            >
+                                                <ClearAllIcon/>
+                                            </IconButton>
+                                        </Tooltip>
                                         <IconButton onClick={() => handleOpenModal(item)}>
                                             <DensityMediumIcon sx={{color: "#fff"}}/>
                                         </IconButton>
@@ -478,10 +543,10 @@ const Dashboard = () => {
                 onClose={() => setOpenDeleteChatDialog(false)}
                 sx={{"& .MuiPaper-root": {backgroundColor: "#222", color: "#fff"}}}
             >
-                <DialogTitle>Delete Conversation</DialogTitle>
+                <DialogTitle>Clear Conversation</DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Are you sure you want to delete the conversation
+                        Are you sure you want to clear the conversation
                         with <strong>{deleteChatUser?.userName}</strong>?
                     </Typography>
                 </DialogContent>

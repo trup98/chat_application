@@ -35,3 +35,14 @@ export const removeProfilePicture = async (userId) => {
 export const deleteConversation = async (senderId, receiverId) => {
     return await axiosInstance.delete(`/api/messages/delete/conversation?senderId=${senderId}&receiverId=${receiverId}`).then(response => response.data);
 }
+
+export const unSendMessage = async (senderId, messageId) => {
+    return await axiosInstance.delete(`/api/messages/unSend/message/${senderId}/${messageId}`);
+};
+
+export const getUnreadCount = async (receiverId) => {
+    return await axiosInstance.get(`/api/messages/unread-count/${receiverId}`);
+};
+export const markMessageRead = async (senderId, receiverId) => {
+    return await axiosInstance.put(`/api/messages/mark-as-read?senderId=${senderId}&receiverId=${receiverId}`).then(response => response.data);
+}

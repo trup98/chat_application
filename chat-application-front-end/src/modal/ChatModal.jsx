@@ -7,9 +7,9 @@ import {
     Button,
     TextField,
     Box,
-    Typography, IconButton
+    Typography, IconButton, Tooltip
 } from "@mui/material";
-import {getChatHistory, sendChat} from "../api/auth/userApi";
+import {getChatHistory, sendChat, unSendMessage} from "../api/auth/userApi";
 import {getTokenFromCookie, getUserId} from "../config/Cookie-store";
 import {Client} from "@stomp/stompjs";
 import {getGroupChatHistory, getGroupMembers, sendMessageInGroup} from "../api/auth/groupApi";
@@ -29,6 +29,7 @@ const ChatModal = ({open, onClose, user, group}) => {
     const [groupMembers, setGroupMembers] = useState([]);
     const [membersModalOpen, setMembersModalOpen] = useState(false);
     const [addMembersModalOpen, setAddMembersModalOpen] = useState(false);
+
 
     // Scroll to bottom when messages update
     useEffect(() => {
@@ -119,18 +120,18 @@ const ChatModal = ({open, onClose, user, group}) => {
         try {
             let response;
             let newMessage;
-
             if (group) {
                 newMessage = {groupId: group, senderId, content: message.trim()};
                 response = await sendMessageInGroup(newMessage);
                 if (response.status === 200) {
+                    setMessages((prevMessages) => [...prevMessages, response.data]);
                     setMessage("");
                 }
             } else {
                 newMessage = {senderId, receiverId, content: message.trim()};
                 response = await sendChat(newMessage);
                 if (response.status === 200) {
-                    setMessages((prevMessages) => [...prevMessages, newMessage]);
+                    setMessages((prevMessages) => [...prevMessages, response.data]);
                     setMessage("");
                 }
             }
@@ -153,6 +154,20 @@ const ChatModal = ({open, onClose, user, group}) => {
             }
         }
     };
+
+    const handleUnSendMessage = async (messageId) => {
+        try {
+            const response = await unSendMessage(senderId, messageId);
+            if (response.status === 200) {
+                setMessages((prev) => prev.filter((m) => m.id !== messageId));
+            } else {
+                console.error("Failed to unsend message");
+            }
+        } catch (err) {
+            console.error("Error unsending message:", err);
+        }
+    };
+
 
     return (
         <>
@@ -211,6 +226,7 @@ const ChatModal = ({open, onClose, user, group}) => {
                                             borderRadius: 2,
                                             maxWidth: "70%",
                                             alignSelf: msg.senderId === senderId ? "flex-end" : "flex-start",
+                                            position: "relative"
                                         }}
                                     >
                                         {group && (
@@ -223,7 +239,45 @@ const ChatModal = ({open, onClose, user, group}) => {
                                                     sx={{color: "black", fontSize: "0.75rem", textAlign: "right"}}>
                                             {dayjs(msg.timestamp).format("MMM D, YYYY h:mm A")}
                                         </Typography>
+
+                                        {/* Only show unsend icon if sender is current user */}
+                                        {msg.senderId === senderId && (
+                                            <Tooltip title="Unsend Message" arrow>
+                                                <IconButton
+                                                    size="small"
+                                                    sx={{position: "absolute", top: 2, right: 2}}
+                                                    onClick={() => handleUnSendMessage(msg.id)}
+                                                >
+                                                    🗑️
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
+
                                     </Box>
+
+                                    // <Box
+                                    //     key={index}
+                                    //     sx={{
+                                    //         padding: 1,
+                                    //         marginBottom: 1,
+                                    //         backgroundColor: msg.senderId === senderId ? "#ECE5DD" : "#DCF8C6",
+                                    //         color: "black",
+                                    //         borderRadius: 2,
+                                    //         maxWidth: "70%",
+                                    //         alignSelf: msg.senderId === senderId ? "flex-end" : "flex-start",
+                                    //     }}
+                                    // >
+                                    //     {group && (
+                                    //         <Typography variant="caption" sx={{color: "black"}}>
+                                    //             {msg.senderName}:
+                                    //         </Typography>
+                                    //     )}
+                                    //     <Typography>{msg.content}</Typography>
+                                    //     <Typography variant="caption"
+                                    //                 sx={{color: "black", fontSize: "0.75rem", textAlign: "right"}}>
+                                    //         {dayjs(msg.timestamp).format("MMM D, YYYY h:mm A")}
+                                    //     </Typography>
+                                    // </Box>
                                 ))
                             ) : (
                                 <Typography sx={{color: "#aaa", textAlign: "center"}}>

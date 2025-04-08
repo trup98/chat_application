@@ -3,6 +3,7 @@ package com.learning.real_time_chat_application.controller;
 import com.learning.real_time_chat_application.dto.request.MessageRequestDto;
 import com.learning.real_time_chat_application.dto.response.ApiResponse;
 import com.learning.real_time_chat_application.dto.response.MessageResponseDto;
+import com.learning.real_time_chat_application.dto.response.SenderUnreadDto;
 import com.learning.real_time_chat_application.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -39,8 +40,27 @@ public class MessageController {
 
     @DeleteMapping("/delete/conversation")
     public ResponseEntity<ApiResponse> deleteConversation(@RequestParam Long senderId, @RequestParam Long receiverId) {
-        this.messageService.deleteConversation(senderId,receiverId);
+        this.messageService.deleteConversation(senderId, receiverId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Chat Deleted Successfully", Collections.emptyMap()), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/unSend/message/{senderId}/{messageId}")
+    public ResponseEntity<ApiResponse> unSendMessage(@PathVariable Long senderId, @PathVariable Long messageId) {
+        this.messageService.unSendMessage(senderId, messageId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Chat Deleted Successfully", Collections.emptyMap()), HttpStatus.OK);
+    }
+
+    @GetMapping("/unread-count/{receiverId}")
+    public ResponseEntity<ApiResponse> getUnreadCount(@PathVariable Long receiverId) {
+        List<SenderUnreadDto> unreadMessageCount = messageService.getUnreadMessageCount(receiverId);
+        messagingTemplate.convertAndSendToUser(receiverId.toString(), "/queue/unread-count", unreadMessageCount);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Unread count fetched", unreadMessageCount), HttpStatus.OK);
+    }
+
+    @PutMapping("/mark-as-read")
+    public ResponseEntity<ApiResponse> markMessagesAsRead(@RequestParam Long senderId, @RequestParam Long receiverId) {
+        this.messageService.markMessagesAsRead(senderId, receiverId);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Messages marked as read", Collections.emptyMap()), HttpStatus.OK);
     }
 
 

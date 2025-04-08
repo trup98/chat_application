@@ -33,5 +33,15 @@ public class ConversationEntity {
     @ColumnDefault("false")
     private Boolean isDeleted;
 
+    @PrePersist
+    public void prePersist() {
+        if (this.isActive == null) {
+            this.isActive = true;
+        }
+        if (this.isDeleted == null) {
+            this.isDeleted = false;
+        }
+    }
+
 
 }

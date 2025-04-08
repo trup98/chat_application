@@ -2,6 +2,7 @@ package com.learning.real_time_chat_application.service.impl;
 
 import com.learning.real_time_chat_application.dto.request.MessageRequestDto;
 import com.learning.real_time_chat_application.dto.response.MessageResponseDto;
+import com.learning.real_time_chat_application.dto.response.SenderUnreadDto;
 import com.learning.real_time_chat_application.entity.ConversationEntity;
 import com.learning.real_time_chat_application.entity.MessagesEntity;
 import com.learning.real_time_chat_application.entity.UserEntity;
@@ -39,6 +40,7 @@ public class MessageServiceImpl implements MessageService {
         var savedMessage = this.conversationService.saveMessage(sender, receiver, messageRequestDto, conversationEntity);
 
         MessageResponseDto messageResponseDto = MessageResponseDto.builder()
+                .id(savedMessage.getId())
                 .senderName(savedMessage.getSenderId().getUserName())
                 .receiverName(savedMessage.getReceiverId().getUserName())
                 .senderId(savedMessage.getSenderId().getId())
@@ -61,10 +63,13 @@ public class MessageServiceImpl implements MessageService {
 
         ConversationEntity conversationBetweenUsers = conversationService.findConversationBetweenUsers(senderUserId, receiverUserId);
 
-        List<MessagesEntity> messages = messageRepository.findByConversationIdSorted(conversationBetweenUsers.getId());
+//        List<MessagesEntity> messages = messageRepository.findByConversationIdSorted(conversationBetweenUsers.getId());
+
+        List<MessagesEntity> messages = messageRepository.findVisibleMessages(conversationBetweenUsers.getId(), senderId);
 
         return messages.stream().
                 map(message -> MessageResponseDto.builder()
+                        .id(message.getId())
                         .senderName(message.getSenderId().getUserName())
                         .receiverName(message.getReceiverId().getUserName())
                         .senderId(message.getSenderId().getId())
@@ -77,18 +82,57 @@ public class MessageServiceImpl implements MessageService {
                 .collect(Collectors.toList());
     }
 
-        @Override
+    @Override
     public void deleteConversation(Long senderId, Long receiverId) {
-        UserEntity senderUserId = this.userRepository.findById(senderId).orElseThrow(() -> new CustomException(ExceptionEnum.SENDER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
-        UserEntity receiverUserId = this.userRepository.findById(receiverId).orElseThrow(() -> new CustomException(ExceptionEnum.RECEIVER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
-        ConversationEntity conversationBetweenUsers = this.conversationService.findConversationBetweenUsers(senderUserId, receiverUserId);
+        UserEntity sender = this.userRepository.findById(senderId)
+                .orElseThrow(() -> new CustomException(ExceptionEnum.SENDER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        UserEntity receiver = this.userRepository.findById(receiverId)
+                .orElseThrow(() -> new CustomException(ExceptionEnum.RECEIVER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
 
-        List<MessagesEntity> byConversationIdSorted = this.messageRepository.findByConversationIdSorted(conversationBetweenUsers.getId());
-        byConversationIdSorted.forEach(message -> {
-            message.setIsDeleted(true);
-            message.setIsActive(false);
+        ConversationEntity conversation = this.conversationService.findConversationBetweenUsers(sender, receiver);
+        List<MessagesEntity> messages = this.messageRepository.findByConversationIdSorted(conversation.getId());
+
+        for (MessagesEntity message : messages) {
+            if (message.getSenderId().getId().equals(senderId)) {
+                message.setIsDeletedForSender(true);
+            } else if (message.getReceiverId().getId().equals(senderId)) {
+                message.setIsDeletedForReceiver(true);
+            }
+
             this.messageRepository.save(message);
-        });
+        }
+    }
+
+    @Override
+    public void unSendMessage(Long senderId, Long messageId) {
+        UserEntity userEntity = this.userRepository.findById(senderId).orElseThrow(() -> new CustomException(ExceptionEnum.SENDER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        MessagesEntity messagesEntity = this.messageRepository.findById(messageId).orElseThrow(() -> new CustomException(ExceptionEnum.MESSAGE_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+        if (!messagesEntity.getSenderId().getId().equals(userEntity.getId())) {
+            // If the user is not the sender
+            throw new CustomException(ExceptionEnum.YOU_CAN_ONLY_UNSEND_YOUR_OWN_MESSAGES.getMessage(), HttpStatus.FORBIDDEN);
+        }
+        messagesEntity.setIsActive(false);
+        messagesEntity.setIsDeleted(true);
+        this.messageRepository.save(messagesEntity);
+
+    }
+
+    @Override
+    public List<SenderUnreadDto> getUnreadMessageCount(Long receiverId) {
+        return messageRepository.findUnreadCountsBySender(receiverId);
+    }
+
+    @Override
+    public void markMessagesAsRead(Long senderId, Long receiverId) {
+        List<MessagesEntity> unreadMessages = messageRepository
+                .findBySenderId_IdAndReceiverId_IdAndIsReadFalseAndIsDeletedFalse(senderId, receiverId);
+
+        for (MessagesEntity message : unreadMessages) {
+            message.setRead(true);
+        }
+
+        messageRepository.saveAll(unreadMessages);
     }
 
 }
