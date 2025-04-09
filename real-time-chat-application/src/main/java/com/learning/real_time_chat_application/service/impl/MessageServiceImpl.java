@@ -1,5 +1,6 @@
 package com.learning.real_time_chat_application.service.impl;
 
+import com.learning.real_time_chat_application.dto.request.EditMessageRequestDto;
 import com.learning.real_time_chat_application.dto.request.MessageRequestDto;
 import com.learning.real_time_chat_application.dto.response.MessageResponseDto;
 import com.learning.real_time_chat_application.dto.response.SenderUnreadDto;
@@ -17,7 +18,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -135,4 +138,17 @@ public class MessageServiceImpl implements MessageService {
         messageRepository.saveAll(unreadMessages);
     }
 
+    @Override
+    public void editMessage(EditMessageRequestDto editMessageRequestDto) {
+        UserEntity userEntity = this.userRepository.findById(editMessageRequestDto.getSenderId()).orElseThrow(() -> new CustomException(ExceptionEnum.SENDER_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+        MessagesEntity messagesEntity = this.messageRepository.findById(editMessageRequestDto.getMessageId()).orElseThrow(() -> new CustomException(ExceptionEnum.MESSAGE_NOT_FOUND.getMessage(), HttpStatus.NOT_FOUND));
+
+        if (!messagesEntity.getSenderId().getId().equals(userEntity.getId())) {
+            throw new CustomException(ExceptionEnum.YOU_CAN_NOT_EDIT_THIS_MESSAGE.getMessage(), HttpStatus.FORBIDDEN);
+        }
+        messagesEntity.setContent(editMessageRequestDto.getNewMessageContent());
+        messagesEntity.setEditedAt(LocalDateTime.now());
+        messagesEntity.setIsEdited(true);
+        this.messageRepository.save(messagesEntity);
+    }
 }

@@ -58,6 +58,14 @@ public class MessagesEntity {
     @ColumnDefault("false")
     private Boolean isDeletedForReceiver;
 
+    @Column(name = "is_edited")
+    @ColumnDefault("false")
+    private Boolean isEdited = false;
+
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+
+
     @PrePersist
     public void prePersist() {
         if (this.isActive == null) {
@@ -65,6 +73,9 @@ public class MessagesEntity {
         }
         if (this.isDeleted == null) {
             this.isDeleted = false;
+        }
+        if (this.isEdited == null) {
+            this.isEdited = false;
         }
         if (this.isDeletedForSender == null) {
             this.isDeletedForSender = false;

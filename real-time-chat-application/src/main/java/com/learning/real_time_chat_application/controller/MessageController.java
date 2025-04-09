@@ -1,5 +1,6 @@
 package com.learning.real_time_chat_application.controller;
 
+import com.learning.real_time_chat_application.dto.request.EditMessageRequestDto;
 import com.learning.real_time_chat_application.dto.request.MessageRequestDto;
 import com.learning.real_time_chat_application.dto.response.ApiResponse;
 import com.learning.real_time_chat_application.dto.response.MessageResponseDto;
@@ -61,6 +62,12 @@ public class MessageController {
     public ResponseEntity<ApiResponse> markMessagesAsRead(@RequestParam Long senderId, @RequestParam Long receiverId) {
         this.messageService.markMessagesAsRead(senderId, receiverId);
         return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Messages marked as read", Collections.emptyMap()), HttpStatus.OK);
+    }
+
+    @PutMapping("/edit")
+    public ResponseEntity<ApiResponse> editMessage(@RequestBody EditMessageRequestDto editMessageRequestDto) {
+        this.messageService.editMessage(editMessageRequestDto);
+        return new ResponseEntity<>(new ApiResponse(HttpStatus.OK, "Messages Edited Successfully", Collections.emptyMap()), HttpStatus.OK);
     }
 
 

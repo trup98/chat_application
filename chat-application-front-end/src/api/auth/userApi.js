@@ -46,3 +46,7 @@ export const getUnreadCount = async (receiverId) => {
 export const markMessageRead = async (senderId, receiverId) => {
     return await axiosInstance.put(`/api/messages/mark-as-read?senderId=${senderId}&receiverId=${receiverId}`).then(response => response.data);
 }
+
+export const editMessage = async (payload) => {
+    return await axiosInstance.put(`/api/messages/edit`, payload).then(response => response.data);
+}

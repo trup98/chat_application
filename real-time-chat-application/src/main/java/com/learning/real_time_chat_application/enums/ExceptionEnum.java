@@ -38,7 +38,9 @@ public enum ExceptionEnum {
     FILE_SIZE_EXCEEDED("File size exceeds the maximum allowed limit of 10 MB.", "FILE_SIZE_EXCEEDED"),
     INVALID_FILE_TYPE("Invalid file type. Only JPEG, PNG, and PDF files are allowed.", "INVALID_FILE_TYPE"),
     MESSAGE_NOT_FOUND("Message not found", "MESSAGE_NOT_FOUND"),
-    YOU_CAN_ONLY_UNSEND_YOUR_OWN_MESSAGES("You can only unsend your own messages", "YOU_CAN_ONLY_UNSEND_YOUR_OWN_MESSAGES");
+    YOU_CAN_ONLY_UNSEND_YOUR_OWN_MESSAGES("You can only unsend your own messages", "YOU_CAN_ONLY_UNSEND_YOUR_OWN_MESSAGES"),
+    YOU_CAN_NOT_EDIT_THIS_MESSAGE("You can't edit the message", "YOU_CAN_NOT_EDIT_THIS_MESSAGE"),
+    ;
 
     private final String message;
     private final String value;

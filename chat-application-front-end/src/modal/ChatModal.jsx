@@ -7,15 +7,26 @@ import {
     Button,
     TextField,
     Box,
-    Typography, IconButton, Tooltip
+    Typography,
+    IconButton,
+    Tooltip
 } from "@mui/material";
-import {getChatHistory, sendChat, unSendMessage} from "../api/auth/userApi";
+import {
+    getChatHistory,
+    sendChat,
+    unSendMessage,
+    editMessage
+} from "../api/auth/userApi";
 import {getTokenFromCookie, getUserId} from "../config/Cookie-store";
 import {Client} from "@stomp/stompjs";
-import {getGroupChatHistory, getGroupMembers, sendMessageInGroup} from "../api/auth/groupApi";
+import {
+    getGroupChatHistory,
+    getGroupMembers,
+    sendMessageInGroup
+} from "../api/auth/groupApi";
 import dayjs from "dayjs";
 import AddIcon from "@mui/icons-material/Add";
-import InfoIcon from '@mui/icons-material/Info';
+import InfoIcon from "@mui/icons-material/Info";
 import MembersModal from "./MembersModal";
 import AddMembersModal from "./AddMembersModal";
 
@@ -30,8 +41,10 @@ const ChatModal = ({open, onClose, user, group}) => {
     const [membersModalOpen, setMembersModalOpen] = useState(false);
     const [addMembersModalOpen, setAddMembersModalOpen] = useState(false);
 
+    // Edit-related states
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editedContent, setEditedContent] = useState("");
 
-    // Scroll to bottom when messages update
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
     }, [messages]);
@@ -41,11 +54,11 @@ const ChatModal = ({open, onClose, user, group}) => {
             fetchChatHistory();
             initializeSocket();
         } else {
-            closeSocket(); // Close socket when modal is closed
+            closeSocket();
         }
 
         return () => {
-            closeSocket(); // Ensure socket is cleaned up
+            closeSocket();
         };
     }, [open, senderId, receiverId, group]);
 
@@ -78,7 +91,7 @@ const ChatModal = ({open, onClose, user, group}) => {
 
     const initializeSocket = () => {
         if (stompClientRef.current) {
-            closeSocket(); // Close existing connection before opening a new one
+            closeSocket();
         }
         const token = getTokenFromCookie("token");
 
@@ -90,16 +103,14 @@ const ChatModal = ({open, onClose, user, group}) => {
 
         stompClient.onConnect = () => {
             console.log("✅ Connected to WebSocket");
-            // Subscribe to personal messages
             stompClient.subscribe(`/user/${senderId}/queue/messages`, (message) => {
                 const newMessage = JSON.parse(message.body);
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
+                setMessages((prev) => [...prev, newMessage]);
             });
-            // Subscribe to group messages if chatting in a group
             if (group) {
                 stompClient.subscribe(`/topic/group/${group}`, (message) => {
                     const newGroupMessage = JSON.parse(message.body);
-                    setMessages((prevMessages) => [...prevMessages, newGroupMessage]);
+                    setMessages((prev) => [...prev, newGroupMessage]);
                 });
             }
         };
@@ -111,47 +122,28 @@ const ChatModal = ({open, onClose, user, group}) => {
         stompClient.activate();
         stompClientRef.current = stompClient;
     };
-    // Send message via REST API only.
-    // The backend will persist the message and then push it to the recipient via WebSocket.
+
     const handleSendButton = async () => {
         if (!message.trim()) return;
-
 
         try {
             let response;
             let newMessage;
+
             if (group) {
                 newMessage = {groupId: group, senderId, content: message.trim()};
                 response = await sendMessageInGroup(newMessage);
-                if (response.status === 200) {
-                    setMessages((prevMessages) => [...prevMessages, response.data]);
-                    setMessage("");
-                }
             } else {
                 newMessage = {senderId, receiverId, content: message.trim()};
                 response = await sendChat(newMessage);
-                if (response.status === 200) {
-                    setMessages((prevMessages) => [...prevMessages, response.data]);
-                    setMessage("");
-                }
+            }
+
+            if (response.status === 200) {
+                setMessages((prev) => [...prev, response.data]);
+                setMessage("");
             }
         } catch (error) {
             console.error("Error sending message:", error);
-        }
-    };
-
-    const handleInfoIconClick = async () => {
-        if (group) {
-            try {
-                const response = await getGroupMembers(group);
-                if (response.status === 200) {
-                    setGroupMembers(response.data);
-                    setMembersModalOpen(true);
-                }
-
-            } catch (error) {
-                console.error("Error fetching group members:", error);
-            }
         }
     };
 
@@ -168,59 +160,81 @@ const ChatModal = ({open, onClose, user, group}) => {
         }
     };
 
+    const handleSaveEdit = async (messageId) => {
+        try {
+            const payload = {
+                senderId,
+                messageId,
+                newMessageContent: editedContent,
+            };
+
+            const response = await editMessage(payload);
+
+            if (response.status === 200) {
+                setMessages((prevMessages) =>
+                    prevMessages.map((msg) =>
+                        msg.id === messageId
+                            ? {...msg, content: editedContent, isEdited: true}
+                            : msg
+                    )
+                );
+                setEditingMessageId(null);
+                setEditedContent("");
+            }
+        } catch (error) {
+            console.error("Error editing message:", error);
+        }
+    };
+
+    const handleInfoIconClick = async () => {
+        if (group) {
+            try {
+                const response = await getGroupMembers(group);
+                if (response.status === 200) {
+                    setGroupMembers(response.data);
+                    setMembersModalOpen(true);
+                }
+            } catch (error) {
+                console.error("Error fetching group members:", error);
+            }
+        }
+    };
 
     return (
         <>
             <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
                 <Box sx={{backgroundColor: "#222", color: "#fff"}}>
-                    <Box>
-                        <DialogTitle
-                            sx={{
-                                backgroundColor: "#333",
-                                color: "#fff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "8px 16px",
-                            }}
-                        >
-                            <Box sx={{flexGrow: 1, textAlign: "center"}}>
-                                {group ? "Group Chat" : `Chat with ${user?.userName}`}
-                            </Box>
+                    <DialogTitle sx={{backgroundColor: "#333", display: "flex", justifyContent: "space-between"}}>
+                        <Box sx={{textAlign: "center", flexGrow: 1}}>
+                            {group ? "Group Chat" : `Chat with ${user?.userName}`}
+                        </Box>
+                        {group && (
+                            <>
+                                <IconButton sx={{color: "#fff"}} onClick={handleInfoIconClick}>
+                                    <InfoIcon/>
+                                </IconButton>
+                                <IconButton sx={{color: "#fff"}} onClick={() => setAddMembersModalOpen(true)}>
+                                    <AddIcon/>
+                                </IconButton>
+                            </>
+                        )}
+                    </DialogTitle>
 
-                            {group && (
-                                <>
-                                    <IconButton sx={{color: "#fff"}} onClick={handleInfoIconClick}>
-                                        <InfoIcon/>
-                                    </IconButton>
-                                    <IconButton sx={{color: "#fff"}} onClick={() => setAddMembersModalOpen(true)}>
-                                        <AddIcon/>
-                                    </IconButton>
-                                </>
-                            )}
-                        </DialogTitle>
-                    </Box>
-
-
-                    <DialogContent dividers sx={{backgroundColor: "#222", minHeight: 300, maxHeight: 400}}>
-                        <Box
-                            sx={{
-                                height: 300,
-                                overflowY: "auto",
-                                padding: 2,
-                                backgroundColor: "#1e1e1e",
-                                borderRadius: 2,
-                                display: "flex",
-                                flexDirection: "column"
-                            }}
-                        >
+                    <DialogContent dividers sx={{minHeight: 300, maxHeight: 400}}>
+                        <Box sx={{
+                            height: 300,
+                            overflowY: "auto",
+                            padding: 2,
+                            display: "flex",
+                            flexDirection: "column"
+                        }}>
                             {messages.length > 0 ? (
                                 messages.map((msg, index) => (
                                     <Box
                                         key={index}
                                         sx={{
                                             padding: 1,
-                                            marginBottom: 1,
+                                            mb: 1,
                                             backgroundColor: msg.senderId === senderId ? "#ECE5DD" : "#DCF8C6",
                                             color: "black",
                                             borderRadius: 2,
@@ -234,50 +248,85 @@ const ChatModal = ({open, onClose, user, group}) => {
                                                 {msg.senderName}:
                                             </Typography>
                                         )}
-                                        <Typography>{msg.content}</Typography>
-                                        <Typography variant="caption"
-                                                    sx={{color: "black", fontSize: "0.75rem", textAlign: "right"}}>
+
+                                        {editingMessageId === msg.id ? (
+                                            <Box>
+                                                <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    value={editedContent}
+                                                    onChange={(e) => setEditedContent(e.target.value)}
+                                                    sx={{backgroundColor: "#fff", borderRadius: 1}}
+                                                />
+                                                <Box sx={{display: "flex", justifyContent: "flex-end", mt: 1}}>
+                                                    <Button
+                                                        size="small"
+                                                        variant="contained"
+                                                        onClick={() => handleSaveEdit(msg.id)}
+                                                        sx={{mr: 1}}
+                                                    >
+                                                        Save
+                                                    </Button>
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        onClick={() => setEditingMessageId(null)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </Box>
+                                            </Box>
+                                        ) : (
+                                            <>
+                                                <Typography>{msg.content}</Typography>
+                                                {msg.isEdited && (
+                                                    <Typography variant="caption" sx={{color: "gray"}}>
+                                                        (edited)
+                                                    </Typography>
+                                                )}
+                                            </>
+                                        )}
+
+                                        <Typography variant="caption" sx={{color: "black", fontSize: "0.75rem"}}>
                                             {dayjs(msg.timestamp).format("MMM D, YYYY h:mm A")}
                                         </Typography>
 
-                                        {/* Only show unsend icon if sender is current user */}
-                                        {msg.senderId === senderId && (
-                                            <Tooltip title="Unsend Message" arrow>
-                                                <IconButton
-                                                    size="small"
-                                                    sx={{position: "absolute", top: 2, right: 2}}
-                                                    onClick={() => handleUnSendMessage(msg.id)}
-                                                >
-                                                    🗑️
-                                                </IconButton>
-                                            </Tooltip>
+                                        {msg.senderId === senderId && editingMessageId !== msg.id && (
+                                            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+                                                <Tooltip title="Edit Message" arrow>
+                                                    <IconButton
+                                                        size="small"
+                                                        sx={{
+                                                            color: "#333",
+                                                            backgroundColor: "#fff",
+                                                            mx: 0.5,
+                                                            '&:hover': { backgroundColor: "#eee" }
+                                                        }}
+                                                        onClick={() => {
+                                                            setEditingMessageId(msg.id);
+                                                            setEditedContent(msg.content);
+                                                        }}
+                                                    >
+                                                        ✏️
+                                                    </IconButton>
+                                                </Tooltip>
+                                                <Tooltip title="Unsend Message" arrow>
+                                                    <IconButton
+                                                        size="small"
+                                                        sx={{
+                                                            color: "#333",
+                                                            backgroundColor: "#fff",
+                                                            mx: 0.5,
+                                                            '&:hover': { backgroundColor: "#eee" }
+                                                        }}
+                                                        onClick={() => handleUnSendMessage(msg.id)}
+                                                    >
+                                                        🗑️
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                         )}
-
                                     </Box>
-
-                                    // <Box
-                                    //     key={index}
-                                    //     sx={{
-                                    //         padding: 1,
-                                    //         marginBottom: 1,
-                                    //         backgroundColor: msg.senderId === senderId ? "#ECE5DD" : "#DCF8C6",
-                                    //         color: "black",
-                                    //         borderRadius: 2,
-                                    //         maxWidth: "70%",
-                                    //         alignSelf: msg.senderId === senderId ? "flex-end" : "flex-start",
-                                    //     }}
-                                    // >
-                                    //     {group && (
-                                    //         <Typography variant="caption" sx={{color: "black"}}>
-                                    //             {msg.senderName}:
-                                    //         </Typography>
-                                    //     )}
-                                    //     <Typography>{msg.content}</Typography>
-                                    //     <Typography variant="caption"
-                                    //                 sx={{color: "black", fontSize: "0.75rem", textAlign: "right"}}>
-                                    //         {dayjs(msg.timestamp).format("MMM D, YYYY h:mm A")}
-                                    //     </Typography>
-                                    // </Box>
                                 ))
                             ) : (
                                 <Typography sx={{color: "#aaa", textAlign: "center"}}>
@@ -288,7 +337,7 @@ const ChatModal = ({open, onClose, user, group}) => {
                         </Box>
                     </DialogContent>
 
-                    <Box sx={{backgroundColor: "#222", padding: 2}}>
+                    <Box sx={{padding: 2}}>
                         <TextField
                             fullWidth
                             placeholder="Type a message..."
@@ -310,7 +359,6 @@ const ChatModal = ({open, onClose, user, group}) => {
                 </Box>
             </Dialog>
 
-            {/* Show Group Members Modal */}
             <MembersModal
                 members={groupMembers}
                 onClose={() => setMembersModalOpen(false)}
@@ -325,8 +373,6 @@ const ChatModal = ({open, onClose, user, group}) => {
                 refreshGroupMembers={handleInfoIconClick}
             />}
         </>
-
-
     );
 };
 

@@ -1,5 +1,6 @@
 package com.learning.real_time_chat_application.service;
 
+import com.learning.real_time_chat_application.dto.request.EditMessageRequestDto;
 import com.learning.real_time_chat_application.dto.request.MessageRequestDto;
 import com.learning.real_time_chat_application.dto.response.MessageResponseDto;
 import com.learning.real_time_chat_application.dto.response.SenderUnreadDto;
@@ -18,4 +19,6 @@ public interface MessageService {
     List<SenderUnreadDto> getUnreadMessageCount(Long receiverId);
 
     void markMessagesAsRead(Long senderId, Long receiverId);
+
+    void editMessage(EditMessageRequestDto editMessageRequestDto);
 }

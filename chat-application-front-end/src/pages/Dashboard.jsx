@@ -40,6 +40,11 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import Tooltip from '@mui/material/Tooltip';
+import {
+    getCachedProfileUrl,
+    saveProfileUrlToCache,
+    cleanupProfileCache
+} from "../utils/profileCache";
 
 
 const Dashboard = () => {
@@ -66,6 +71,9 @@ const Dashboard = () => {
     const [openDeleteChatDialog, setOpenDeleteChatDialog] = useState(false);
     const [unreadCounts, setUnreadCounts] = useState({});
 
+    useEffect(() => {
+        cleanupProfileCache();
+    }, []);
 
     // Fetch Users
     const getAllUsers = async (currentPage) => {
@@ -73,9 +81,27 @@ const Dashboard = () => {
             const response = await callAllUser(value, value ? 0 : currentPage, pageSize, senderId);
             if (response.status === 200) {
                 const users = response.data.content;
-                setUsers(users);
+
+                // Apply cached URLs or cache fresh ones
+                const updatedUsers = users.map(user => {
+                    let cachedUrl = getCachedProfileUrl(user.id);
+
+                    // If not cached and S3 URL exists, cache it
+                    if (!cachedUrl && user.userProfileS3Link) {
+                        cachedUrl = user.userProfileS3Link;
+                        saveProfileUrlToCache(user.id, cachedUrl);
+                    }
+
+                    return {
+                        ...user,
+                        userProfileS3Link: cachedUrl || user.userProfileS3Link
+                    };
+                });
+
+                setUsers(updatedUsers);
                 setTotalPages(response.data.totalPages);
 
+                // Fetch unread count
                 const unreadRes = await getUnreadCount(senderId);
                 const unreadList = unreadRes.data.data;
 
