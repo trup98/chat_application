@@ -1,6 +1,5 @@
 import {axiosInstance} from "../../config/axios-config";
 
-
 export const callAllUser = async (searchkey, pageNumber, pageSize, senderId) => {
     return await axiosInstance.get(`/api/v1/user/getAllUser?pageNo=${pageNumber}&pageSize=${pageSize}&searchKey=${searchkey}&senderId=${senderId}`).then(response => response.data)
 }
@@ -43,6 +42,7 @@ export const unSendMessage = async (senderId, messageId) => {
 export const getUnreadCount = async (receiverId) => {
     return await axiosInstance.get(`/api/messages/unread-count/${receiverId}`);
 };
+
 export const markMessageRead = async (senderId, receiverId) => {
     return await axiosInstance.put(`/api/messages/mark-as-read?senderId=${senderId}&receiverId=${receiverId}`).then(response => response.data);
 }

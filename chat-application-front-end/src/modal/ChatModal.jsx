@@ -292,7 +292,7 @@ const ChatModal = ({open, onClose, user, group}) => {
                                         </Typography>
 
                                         {msg.senderId === senderId && editingMessageId !== msg.id && (
-                                            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 0.5 }}>
+                                            <Box sx={{display: "flex", justifyContent: "flex-end", mt: 0.5}}>
                                                 <Tooltip title="Edit Message" arrow>
                                                     <IconButton
                                                         size="small"
@@ -300,7 +300,7 @@ const ChatModal = ({open, onClose, user, group}) => {
                                                             color: "#333",
                                                             backgroundColor: "#fff",
                                                             mx: 0.5,
-                                                            '&:hover': { backgroundColor: "#eee" }
+                                                            '&:hover': {backgroundColor: "#eee"}
                                                         }}
                                                         onClick={() => {
                                                             setEditingMessageId(msg.id);
@@ -317,7 +317,7 @@ const ChatModal = ({open, onClose, user, group}) => {
                                                             color: "#333",
                                                             backgroundColor: "#fff",
                                                             mx: 0.5,
-                                                            '&:hover': { backgroundColor: "#eee" }
+                                                            '&:hover': {backgroundColor: "#eee"}
                                                         }}
                                                         onClick={() => handleUnSendMessage(msg.id)}
                                                     >
