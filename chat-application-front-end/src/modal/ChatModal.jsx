@@ -29,6 +29,7 @@ import AddIcon from "@mui/icons-material/Add";
 import InfoIcon from "@mui/icons-material/Info";
 import MembersModal from "./MembersModal";
 import AddMembersModal from "./AddMembersModal";
+import EmojiPicker from 'emoji-picker-react';
 
 const ChatModal = ({open, onClose, user, group}) => {
     const [message, setMessage] = useState("");
@@ -41,9 +42,11 @@ const ChatModal = ({open, onClose, user, group}) => {
     const [membersModalOpen, setMembersModalOpen] = useState(false);
     const [addMembersModalOpen, setAddMembersModalOpen] = useState(false);
 
-    // Edit-related states
     const [editingMessageId, setEditingMessageId] = useState(null);
     const [editedContent, setEditedContent] = useState("");
+
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const emojiPickerRef = useRef(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
@@ -61,6 +64,18 @@ const ChatModal = ({open, onClose, user, group}) => {
             closeSocket();
         };
     }, [open, senderId, receiverId, group]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+                setShowEmojiPicker(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     const closeSocket = () => {
         if (stompClientRef.current) {
@@ -337,19 +352,46 @@ const ChatModal = ({open, onClose, user, group}) => {
                         </Box>
                     </DialogContent>
 
-                    <Box sx={{padding: 2}}>
-                        <TextField
-                            fullWidth
-                            placeholder="Type a message..."
-                            variant="outlined"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            sx={{
-                                backgroundColor: "#333",
-                                input: {color: "#fff"},
-                                fieldset: {borderColor: "#555"}
-                            }}
-                        />
+                    <Box sx={{padding: 2, position: "relative"}}>
+                        <Box sx={{display: "flex", alignItems: "center"}}>
+                            <TextField
+                                fullWidth
+                                placeholder="Type a message..."
+                                variant="outlined"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                sx={{
+                                    backgroundColor: "#333",
+                                    input: {color: "#fff"},
+                                    fieldset: {borderColor: "#555"}
+                                }}
+                            />
+                            <IconButton
+                                onClick={() => setShowEmojiPicker((prev) => !prev)}
+                                sx={{color: "#fff", ml: 1}}
+                            >
+                                +
+                            </IconButton>
+                        </Box>
+
+                        {showEmojiPicker && (
+                            <Box
+                                ref={emojiPickerRef}
+                                sx={{
+                                    position: "absolute",
+                                    bottom: 65,
+                                    right: 10,
+                                    zIndex: 999
+                                }}
+                            >
+                                <EmojiPicker
+                                    onEmojiClick={(emojiData) => {
+                                        setMessage((prev) => prev + emojiData.emoji);
+                                    }}
+                                    theme="dark"
+                                />
+                            </Box>
+                        )}
                     </Box>
 
                     <DialogActions sx={{backgroundColor: "#333"}}>
